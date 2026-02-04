@@ -41,8 +41,7 @@
   .tbl-row input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px; color:white; font-size: 14px; width:100%; }
   .editable-serial { color: var(--accent); font-weight: bold; border: 1px solid var(--border) !important; }
   .session-edit { color: var(--danger) !important; border-color: var(--danger) !important; }
-  .invalid-field { border-color: var(--danger) !important; animation: pulseRed 0.5s infinite alternate; }
-  @keyframes pulseRed { from { background: var(--bg); } to { background: #330000; } }
+  .invalid-field { border-color: var(--danger) !important; }
   .btn { border-radius:8px; font-weight:600; cursor:pointer; border:none; display:flex; align-items:center; justify-content:center; }
   .btn-cam { padding:10px; width:100%; margin-bottom:8px; background:var(--accentDim); color:var(--accent); border:1px solid var(--accent); }
   .btn-clear-mini { background: var(--danger); color: white; padding: 10px; flex: 1; font-size: 12px; }
@@ -62,7 +61,7 @@
     <div class="badge-item"><div class="badge-label">Serial</div><div id="lastSerialVal" class="badge-val">----------</div></div>
   </div>
   <div class="top-stats">
-    <div class="stat-mini"><span class="stat-label">UNIQUE (10-DIGIT):</span><span id="statFilled" class="stat-val">0</span></div>
+    <div class="stat-mini"><span class="stat-label">UNIQUE:</span><span id="statFilled" class="stat-val">0</span></div>
     <button class="btn btn-clear-mini" onclick="clearAll()">Clear All</button>
   </div>
   <div class="card-tight">
@@ -173,29 +172,26 @@ function renderTable() {
     rows.forEach((r, i) => {
         const div = document.createElement('div');
         div.className = 'tbl-row';
+        const isInvalid = r.serial.length > 0 && r.serial.length !== 10;
         div.innerHTML = `
             <span style="font-size:9px; color:var(--muted)">${i+1}</span>
             <input type="tel" id="zone-${i}" maxlength="3" value="${r.zone}" oninput="handleZoneInput(${i}, this.value)">
-            <input type="tel" id="ser-${i}" maxlength="10" class="editable-serial ${sessionEdits.has(i) ? 'session-edit' : ''}" value="${r.serial}" 
+            <input type="tel" id="ser-${i}" maxlength="10" 
+              class="editable-serial ${sessionEdits.has(i) ? 'session-edit' : ''} ${isInvalid ? 'invalid-field' : ''}" 
+              value="${r.serial}" 
               oninput="handleSerialInput(${i}, this.value)" 
-              onblur="validateEntry(${i}, this.value)">
+              onblur="finalCheck(${i}, this.value)">
             <button onclick="rows[${i}].serial=''; sessionEdits.delete(${i}); renderTable();" style="background:none; border:none; color:var(--danger); cursor:pointer;">×</button>
         `;
         tbody.appendChild(div);
     });
-    // THE SMART COUNTER (Line 144 logic)
     document.getElementById('statFilled').innerText = rows.filter(r => r.serial && r.serial.trim().length === 10).length;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
 }
 
-function validateEntry(idx, val) {
-    const el = document.getElementById(`ser-${idx}`);
+function finalCheck(idx, val) {
     if (val.length > 0 && val.length !== 10) {
-        el.classList.add('invalid-field');
-        triggerErrorVisual("⚠️ MUST BE 10 DIGITS");
-        playSound('error');
-    } else {
-        el.classList.remove('invalid-field');
+        playSound('error'); // Only play the sound when you finish and it's wrong
     }
 }
 
@@ -209,9 +205,7 @@ function handleSerialInput(idx, val) {
     rows[idx].serial = val;
     sessionEdits.add(idx);
     localStorage.setItem('scannerRows', JSON.stringify(rows));
-    document.getElementById(`ser-${idx}`).classList.add('session-edit');
-    // FIX: Instead of manual count, we call the smart renderTable
-    renderTable();
+    renderTable(); // This updates the red color silently while typing
 }
 
 function clearAll() { 
