@@ -17,7 +17,7 @@
     --text:#e8eaf0; --muted:#7a7f95; --danger:#ff5c5c;
     --yellow:#ffff00;
   }
-  html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow-x: hidden; transition: background 0.1s ease; }
+  html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow-x: hidden; }
   body { padding: 10px 15px 160px; scroll-behavior: smooth; } 
   .flash-red { background-color: #660000 !important; }
   .wrap { max-width:680px; margin:0 auto; }
@@ -40,8 +40,7 @@
   .tbl-row { display:grid; grid-template-columns:30px 1fr 1.5fr 30px; gap:4px; align-items:center; padding:4px; border-radius:6px; background:rgba(255,255,255,0.03); }
   .tbl-row input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px; color:white; font-size: 14px; width:100%; }
   .editable-serial { color: var(--accent); font-weight: bold; border: 1px solid var(--border) !important; }
-  .session-edit { color: var(--danger) !important; border-color: var(--danger) !important; }
-  .invalid-field { border-color: var(--danger) !important; }
+  .invalid-field { border-color: var(--danger) !important; color: var(--danger) !important; }
   .btn { border-radius:8px; font-weight:600; cursor:pointer; border:none; display:flex; align-items:center; justify-content:center; }
   .btn-cam { padding:10px; width:100%; margin-bottom:8px; background:var(--accentDim); color:var(--accent); border:1px solid var(--accent); }
   .btn-clear-mini { background: var(--danger); color: white; padding: 10px; flex: 1; font-size: 12px; }
@@ -88,7 +87,6 @@ if ('serviceWorker' in navigator) {
 }
 const TOTAL = 65; 
 let rows = JSON.parse(localStorage.getItem('scannerRows')) || Array.from({length:TOTAL}, () => ({zone:'', serial:''}));
-let sessionEdits = new Set();
 let isScanning = false;
 let lastScannedTime = 0;
 
@@ -117,7 +115,6 @@ function playSound(type) {
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
             osc.start(); osc.stop(audioCtx.currentTime + 0.2);
         } else {
-            triggerErrorVisual();
             osc.type = 'square'; osc.frequency.setValueAtTime(220, audioCtx.currentTime);
             osc.frequency.linearRampToValueAtTime(150, audioCtx.currentTime + 0.1);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
@@ -177,11 +174,11 @@ function renderTable() {
             <span style="font-size:9px; color:var(--muted)">${i+1}</span>
             <input type="tel" id="zone-${i}" maxlength="3" value="${r.zone}" oninput="handleZoneInput(${i}, this.value)">
             <input type="tel" id="ser-${i}" maxlength="10" 
-              class="editable-serial ${sessionEdits.has(i) ? 'session-edit' : ''} ${isInvalid ? 'invalid-field' : ''}" 
+              class="editable-serial ${isInvalid ? 'invalid-field' : ''}" 
               value="${r.serial}" 
               oninput="handleSerialInput(${i}, this.value)" 
               onblur="finalCheck(${i}, this.value)">
-            <button onclick="rows[${i}].serial=''; sessionEdits.delete(${i}); renderTable();" style="background:none; border:none; color:var(--danger); cursor:pointer;">×</button>
+            <button onclick="rows[${i}].serial=''; renderTable();" style="background:none; border:none; color:var(--danger); cursor:pointer;">×</button>
         `;
         tbody.appendChild(div);
     });
@@ -191,7 +188,8 @@ function renderTable() {
 
 function finalCheck(idx, val) {
     if (val.length > 0 && val.length !== 10) {
-        playSound('error'); // Only play the sound when you finish and it's wrong
+        triggerErrorVisual("⚠️ 10 DIGITS REQUIRED");
+        playSound('error');
     }
 }
 
@@ -203,15 +201,14 @@ function handleZoneInput(idx, val) {
 
 function handleSerialInput(idx, val) {
     rows[idx].serial = val;
-    sessionEdits.add(idx);
     localStorage.setItem('scannerRows', JSON.stringify(rows));
-    renderTable(); // This updates the red color silently while typing
+    // Quietly update the counter without redrawing the whole table
+    document.getElementById('statFilled').innerText = rows.filter(r => r.serial && r.serial.trim().length === 10).length;
 }
 
 function clearAll() { 
     if(confirm("Wipe everything?")){ 
         rows=Array.from({length:TOTAL},()=>({zone:'',serial:''})); 
-        sessionEdits.clear();
         document.getElementById('csInput').value = '';
         localStorage.clear();
         renderTable(); 
@@ -226,7 +223,7 @@ document.getElementById('addBtn').addEventListener('click', () => {
 
 document.getElementById('exportBtn').addEventListener('click', () => {
     const cs = document.getElementById('csInput').value;
-    if (cs.length !== 5) { alert("5-digit CS required"); playSound('error'); return; }
+    if (cs.length !== 5) { alert("5-digit CS required"); return; }
     const activeData = rows.filter(r => r.serial);
     if (activeData.some(r => r.serial.length !== 10)) { 
         triggerErrorVisual("🛑 FIX RED SERIALS FIRST");
