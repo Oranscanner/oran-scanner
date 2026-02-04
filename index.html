@@ -49,7 +49,7 @@
   .actions-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); padding: 15px; display: flex; gap: 10px; border-top: 1px solid var(--border); z-index: 100; padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
   .btn-export { background:var(--accent); color:var(--bg); padding:15px; flex:1.5; }
   .btn-copy { background:var(--surface); border:1px solid var(--border); color:white; flex:1; }
-  .jump-btn { position: fixed; bottom: 110px; right: 20px; width: 45px; height: 45px; background: var(--accent); color: var(--bg); border-radius: 50%; display: none; z-index: 99; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 20px; align-items:center; justify-content:center;}
+  .jump-btn { position: fixed; bottom: 180px; right: 20px; width: 50px; height: 50px; background: var(--accent); color: var(--bg); border-radius: 50%; display: flex; z-index: 999; box-shadow: 0 4px 15px rgba(0,0,0,0.6); font-size: 24px; align-items:center; justify-content:center; border: 2px solid var(--bg); }
   #msg { text-align: center; font-size: 11px; color: var(--danger); font-weight: bold; height: 15px; margin-bottom: 5px; }
 </style>
 </head>
@@ -62,7 +62,7 @@
     <div class="badge-item"><div class="badge-label">Serial</div><div id="lastSerialVal" class="badge-val">----------</div></div>
   </div>
   <div class="top-stats">
-    <div class="stat-mini"><span class="stat-label">UNIQUE:</span><span id="statFilled" class="stat-val">0</span></div>
+    <div class="stat-mini"><span class="stat-label">UNIQUE (10-DIGIT):</span><span id="statFilled" class="stat-val">0</span></div>
     <button class="btn btn-clear-mini" onclick="clearAll()">Clear All</button>
   </div>
   <div class="card-tight">
@@ -92,11 +92,6 @@ let rows = JSON.parse(localStorage.getItem('scannerRows')) || Array.from({length
 let sessionEdits = new Set();
 let isScanning = false;
 let lastScannedTime = 0;
-
-window.onscroll = () => {
-  const jBtn = document.getElementById("jumpBtn");
-  jBtn.style.display = (window.scrollY > 300) ? "flex" : "none";
-};
 
 document.getElementById('csInput').value = localStorage.getItem('csNumber') || '';
 function saveCS() { localStorage.setItem('csNumber', document.getElementById('csInput').value); }
@@ -188,6 +183,7 @@ function renderTable() {
         `;
         tbody.appendChild(div);
     });
+    // THE SMART COUNTER (Line 144 logic)
     document.getElementById('statFilled').innerText = rows.filter(r => r.serial && r.serial.trim().length === 10).length;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
 }
@@ -214,7 +210,8 @@ function handleSerialInput(idx, val) {
     sessionEdits.add(idx);
     localStorage.setItem('scannerRows', JSON.stringify(rows));
     document.getElementById(`ser-${idx}`).classList.add('session-edit');
-    document.getElementById('statFilled').innerText = rows.filter(r => r.serial).length;
+    // FIX: Instead of manual count, we call the smart renderTable
+    renderTable();
 }
 
 function clearAll() { 
