@@ -188,7 +188,7 @@ function renderTable() {
         `;
         tbody.appendChild(div);
     });
-    document.getElementById('statFilled').innerText = rows.filter(r => r.serial.legnth === 10).length;
+    document.getElementById('statFilled').innerText = rows.filter(r => r.serial && r.serial.trim().length === 10).length;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
 }
 
