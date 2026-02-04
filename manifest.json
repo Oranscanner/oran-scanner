@@ -1,0 +1,13 @@
+{
+  "short_name": "Scanner",
+  "name": "Oran's 711s Scanner",
+  "icons": [
+    { "src": "icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ],
+  "start_url": "/oran-scanner/",
+  "scope": "/oran-scanner/",
+  "display": "standalone",
+  "theme_color": "#0f1117",
+  "background_color": "#0f1117"
+}
