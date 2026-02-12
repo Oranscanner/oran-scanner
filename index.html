@@ -22,10 +22,7 @@
   body { padding: 10px 15px 160px; scroll-behavior: smooth; } 
   .flash-red { background-color: #660000 !important; }
   .wrap { max-width:680px; margin:0 auto; }
-  
-  /* REVISED CHANGE #1: BLUE TEXT ONLY, NO SHADOW */
   h1 { font-size: 18px; text-align: center; margin-bottom: 5px; color: var(--brandBlue); }
-  
   .cs-input-wrap { display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
   .cs-input-wrap span { color: var(--yellow); font-weight: bold; font-size: 22px; margin-right: 5px; }
   .cs-input-wrap input { background: transparent; border: none; color: var(--yellow); width: 120px; outline: none; font-size: 22px; font-weight: bold; text-align: center; }
@@ -197,10 +194,13 @@ function finalCheck(idx, val) {
     }
 }
 
+// CHANGE #2: Snappy focus jump exactly at 3 digits
 function handleZoneInput(idx, val) {
     rows[idx].zone = val;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
-    if (val.length >= 3 && idx + 1 < TOTAL) document.getElementById(`zone-${idx+1}`).focus();
+    if (val.length === 3 && idx + 1 < TOTAL) {
+        document.getElementById(`zone-${idx+1}`).focus();
+    }
 }
 
 function handleSerialInput(idx, val) {
@@ -244,8 +244,3 @@ document.getElementById('copyBtn').addEventListener('click', () => {
     const dataRows = rows.filter(r => r.serial).map(r => `${r.zone}\t${r.serial}`).join('\n');
     navigator.clipboard.writeText(`CS#: ${cs}\n${dataRows}`);
     alert("Copied!");
-});
-renderTable();
-</script>
-</body>
-</html>
