@@ -15,10 +15,11 @@
     --accent:#3a86ff; --text:#e8eaf0; --muted:#7a7f95; --danger:#ff5c5c;
     --yellow:#ffff00; --successBg:#ffffff; --successText:#000000;
   }
-  html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow: hidden; }
+  /* Adjusted for Pull-to-Refresh */
+  html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow-y: auto; overflow-x: hidden; }
   
-  .header-fixed { position: fixed; top: 0; left: 0; right: 0; background: var(--bg); padding: 10px 15px 5px; z-index: 1000; border-bottom: 1px solid var(--border); }
-  h1 { font-size: 22px; text-align: center; margin-bottom: 8px; color: var(--accent); font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+  .header-area { background: var(--bg); padding: 10px 15px 5px; border-bottom: 1px solid var(--border); }
+  h1 { font-size: 24px; text-align: center; margin-bottom: 8px; color: var(--accent); font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
   
   .cs-input-wrap { display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 5px; margin-bottom: 8px; }
   .cs-input-wrap span { color: var(--yellow); font-weight: bold; font-size: 18px; margin-right: 5px; }
@@ -33,31 +34,32 @@
   .stat-mini { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px; text-align: center; }
   .stat-val { font-size: 20px; font-weight: bold; color: var(--accent); }
 
-  .btn-cam { padding:12px; width:100%; margin-bottom:8px; background:#add8e6; color:#00008b; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size: 14px; }
+  /* Requested Blue Box / Dark Lettering */
+  .btn-cam { padding:12px; width:100%; margin-bottom:8px; background:#add8e6; color:#00008b; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size: 15px; }
   
-  .scroll-area { margin-top: 255px; height: calc(100vh - 365px); overflow-y: auto; padding: 0 15px 120px; scroll-behavior: smooth; }
+  .list-container { padding: 0 15px 140px; }
   .tbl-row { display:grid; grid-template-columns:30px 1fr 1.5fr 30px; gap:6px; align-items:center; padding:4px; margin-bottom: 4px; border-radius:6px; background:rgba(255,255,255,0.03); }
   
-  /* Completion High Contrast */
   .complete-row input { background: var(--successBg) !important; color: var(--successText) !important; font-weight: bold; }
-
-  .tbl-row input { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:8px; color:white; font-size: 16px; width:100%; outline: none; }
-  .error-highlight { border: 2px solid var(--danger) !important; background: rgba(255, 92, 92, 0.2) !important; color: var(--danger) !important; }
+  .tbl-row input { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:10px; color:white; font-size: 16px; width:100%; outline: none; }
+  .error-highlight { border: 2px solid var(--danger) !important; background: rgba(255, 92, 92, 0.2) !important; }
 
   .actions-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); padding: 15px; display: flex; gap: 10px; border-top: 1px solid var(--border); z-index: 1000; padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
   .btn-export { background: #217346; color: white; padding: 12px; flex: 1.5; border-radius: 8px; border: none; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .btn-copy { background:var(--surface); border:1px solid var(--border); color:white; flex:1; border-radius: 8px; font-weight: bold; }
   
-  .jump-btn { position: fixed; bottom: 125px; right: 20px; width: 55px; height: 55px; background: var(--accent); color: white; border-radius: 50%; display: none; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.6); font-size: 28px; align-items:center; justify-content:center; border: 3px solid var(--bg); }
+  /* Blue Jump Arrow */
+  .jump-btn { position: fixed; bottom: 125px; right: 20px; width: 60px; height: 60px; background: var(--accent); color: white; border-radius: 50%; display: none; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.6); font-size: 30px; align-items:center; justify-content:center; border: 3px solid var(--bg); }
   
   #msg { text-align: center; font-size: 12px; color: var(--danger); font-weight: bold; height: 18px; margin-bottom: 2px; }
   .flash-red { background-color: #660000 !important; }
-  #interactive video { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+  #interactive.viewport { width: 100%; height: 220px; background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 10px; border: 2px solid var(--accent); }
+  #interactive video { width: 100%; height: 100%; object-fit: cover; }
 </style>
 </head>
-<body id="mainBody">
+<body id="mainBody" onscroll="toggleJumpBtn()">
 
-<div class="header-fixed">
+<div class="header-area">
   <h1>Oran-SCAN711s</h1>
   <div class="cs-input-wrap"><span>System CS#:</span><input type="tel" id="csInput" maxlength="5" oninput="saveCS()"></div>
   <div class="last-scan-badge">
@@ -69,12 +71,10 @@
   </div>
   <div id="msg"></div>
   <button class="btn-cam" id="camBtn">▶ START CAMERA</button>
+  <div id="interactive" class="viewport" style="display:none;"></div>
 </div>
 
-<div class="scroll-area" id="scrollContainer" onscroll="toggleJumpBtn()">
-  <div id="interactive" style="display:none; width:100%; height:200px; margin-bottom:10px; background:#000; border: 2px solid var(--accent);"></div>
-  <div class="tbl-body" id="tableBody"></div>
-</div>
+<div class="list-container" id="tableBody"></div>
 
 <div class="actions-fixed">
   <button class="btn-export" id="exportBtn">
@@ -97,57 +97,38 @@ let lastScannedTime = 0;
 document.getElementById('csInput').value = localStorage.getItem('csNumber') || '';
 function saveCS() { localStorage.setItem('csNumber', document.getElementById('csInput').value); }
 
-function triggerError(text, inputId) {
-    const m = document.getElementById('msg');
-    m.innerText = text;
+function triggerError(text, id) {
+    const m = document.getElementById('msg'); m.innerText = text;
     document.getElementById('mainBody').classList.add('flash-red');
-    if (inputId) document.getElementById(inputId).classList.add('error-highlight');
-    
+    if(id) document.getElementById(id).classList.add('error-highlight');
     setTimeout(() => {
         document.getElementById('mainBody').classList.remove('flash-red');
-        // Red error stays for 4 seconds per instructions
         setTimeout(() => { if(m.innerText === text) m.innerText = ""; }, 4000);
     }, 300);
 }
 
 function playSound(type) {
     try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const gain = audioCtx.createGain();
-        gain.connect(audioCtx.destination);
-        const osc = audioCtx.createOscillator();
-        osc.connect(gain);
-        if(type === 'success') {
-            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
-        } else {
-            osc.type = 'square'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
-        }
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.connect(g); g.connect(ctx.destination);
+        osc.frequency.setValueAtTime(type==='success'?880:150, ctx.currentTime);
+        osc.start(); osc.stop(ctx.currentTime + 0.2);
     } catch(e){}
 }
 
 function handleData(code) {
     const now = Date.now();
-    if (now - lastScannedTime < 2500) return;
-    if (code.length !== 10) return; 
-    
-    if (rows.some(r => r.serial === code)) {
-        triggerError("❌ DUPLICATE SERIAL");
-        playSound('error');
-        lastScannedTime = now;
-        return;
-    }
-
+    if (now - lastScannedTime < 2500 || code.length !== 10) return;
+    if (rows.some(r => r.serial === code)) { triggerError("❌ DUPLICATE SERIAL"); playSound('error'); return; }
     const idx = rows.findIndex(r => r.serial === "");
     if (idx !== -1) {
         rows[idx].serial = code;
         document.getElementById('lastZoneVal').innerText = rows[idx].zone || "---";
         document.getElementById('lastSerialVal').innerText = code;
-        playSound('success');
-        if (navigator.vibrate) navigator.vibrate(70);
-        lastScannedTime = now;
-        renderTable();
+        playSound('success'); if(navigator.vibrate) navigator.vibrate(70);
+        lastScannedTime = now; renderTable();
     }
 }
 
@@ -160,12 +141,9 @@ function renderTable() {
         div.className = `tbl-row ${isComplete ? 'complete-row' : ''}`;
         div.innerHTML = `
             <span style="font-size:9px; color:var(--muted)">${i+1}</span>
-            <input type="tel" id="zone-${i}" maxlength="3" value="${r.zone}" 
-                   oninput="handleZoneInput(${i}, this.value)" 
-                   onblur="validateZone(${i}, this.value)">
-            <input type="tel" id="ser-${i}" maxlength="10" value="${r.serial}" 
-                   onblur="validateSerial(${i}, this.value)">
-            <button onclick="clearRow(${i})" style="color:var(--danger); background:none; border:none; font-size: 20px;">×</button>
+            <input type="tel" id="zone-${i}" maxlength="3" value="${r.zone}" oninput="handleZoneInput(${i}, this.value)" onblur="validateZone(${i}, this.value)">
+            <input type="tel" id="ser-${i}" maxlength="10" value="${r.serial}" onblur="validateSerial(${i}, this.value)">
+            <button onclick="clearRow(${i})" style="color:var(--danger); background:none; border:none; font-size:20px;">×</button>
         `;
         tbody.appendChild(div);
     });
@@ -175,18 +153,14 @@ function renderTable() {
 
 function handleZoneInput(idx, val) {
     rows[idx].zone = val;
-    // THE AUTO JUMP: 3 digits = jump focus immediately
     if (val.length === 3) {
-        const nextZone = document.getElementById(`zone-${idx + 1}`);
-        if (nextZone) nextZone.focus();
+        const next = document.getElementById(`zone-${idx + 1}`);
+        if (next) next.focus(); // INSTANT JUMP
     }
 }
 
 function validateZone(idx, val) {
-    if (val === "") {
-        document.getElementById(`zone-${idx}`).classList.remove('error-highlight');
-        return;
-    }
+    if (val === "") { document.getElementById(`zone-${idx}`).classList.remove('error-highlight'); return; }
     const isDup = rows.some((r, i) => r.zone === val && i !== idx);
     if (val.length !== 3 || isDup) {
         triggerError(isDup ? "❌ DUPLICATE ZONE" : "⚠️ 3 DIGITS REQUIRED", `zone-${idx}`);
@@ -199,10 +173,7 @@ function validateZone(idx, val) {
 }
 
 function validateSerial(idx, val) {
-    if (val === "") {
-        document.getElementById(`ser-${idx}`).classList.remove('error-highlight');
-        return;
-    }
+    if (val === "") { document.getElementById(`ser-${idx}`).classList.remove('error-highlight'); return; }
     const isDup = rows.some((r, i) => r.serial === val && i !== idx);
     if (val.length !== 10 || isDup) {
         triggerError(isDup ? "❌ DUPLICATE SERIAL" : "⚠️ 10 DIGITS REQUIRED", `ser-${idx}`);
@@ -210,67 +181,51 @@ function validateSerial(idx, val) {
         setTimeout(() => document.getElementById(`ser-${idx}`).focus(), 50);
     } else {
         document.getElementById(`ser-${idx}`).classList.remove('error-highlight');
+        rows[idx].serial = val;
         renderTable();
     }
 }
 
 function clearRow(i) { rows[i] = {zone:'', serial:''}; renderTable(); }
-function toggleJumpBtn() { document.getElementById('jumpBtn').style.display = document.getElementById('scrollContainer').scrollTop > 60 ? 'flex' : 'none'; }
-function scrollToTop() { document.getElementById('scrollContainer').scrollTo({top: 0, behavior: 'smooth'}); }
+function toggleJumpBtn() { document.getElementById('jumpBtn').style.display = window.scrollY > 300 ? 'flex' : 'none'; }
+function scrollToTop() { window.scrollTo({top: 0, behavior: 'smooth'}); }
 
 async function startScanner() {
-    const container = document.getElementById('interactive');
     if (isScanning) { location.reload(); return; }
-    container.style.display = 'block';
+    document.getElementById('interactive').style.display = 'block';
     const devices = await navigator.mediaDevices.enumerateDevices();
     const vids = devices.filter(d => d.kind === 'videoinput');
-    
     Quagga.init({
         inputStream: { 
-            name: "Live", 
-            type: "LiveStream", 
-            target: "#interactive", 
-            constraints: { 
-                deviceId: vids[vids.length-1].deviceId, 
-                facingMode: "environment",
-                width: { min: 640 },
-                height: { min: 480 }
-            }
+            name: "Live", type: "LiveStream", target: "#interactive", 
+            constraints: { deviceId: vids[vids.length-1].deviceId, facingMode: "environment", width: 1280, height: 720 }
         },
-        locate: true, // Helps the camera find the barcode
-        decoder: { 
-            readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader", "codabar_reader"] 
-        }
+        locate: true,
+        decoder: { readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader"] }
     }, (err) => {
         if (!err) { 
-            Quagga.start(); 
-            isScanning = true; 
-            document.getElementById('camBtn').innerText = "⏹ STOP CAMERA"; 
+            Quagga.start(); isScanning = true; 
+            document.getElementById('camBtn').innerText = "⏹ STOP CAMERA";
+            const track = Quagga.CameraAccess.getActiveTrack();
+            if (track && track.getCapabilities().focusMode) track.applyConstraints({advanced: [{focusMode: "continuous"}]});
         }
     });
 }
 
-Quagga.onDetected((data) => handleData(data.codeResult.code));
+Quagga.onDetected((d) => handleData(d.codeResult.code));
 document.getElementById('camBtn').addEventListener('click', startScanner);
 
 document.getElementById('exportBtn').addEventListener('click', () => {
     const cs = document.getElementById('csInput').value;
     if (cs.length !== 5) { triggerError("⚠️ 5-DIGIT CS REQUIRED", 'csInput'); return; }
-    
     const errorIdx = rows.findIndex(r => r.serial !== "" && r.zone === "");
     if (errorIdx !== -1) {
         triggerError("❌ SERIAL MISSING ZONE", `zone-${errorIdx}`);
         document.getElementById(`zone-${errorIdx}`).scrollIntoView();
         return;
     }
-
-    const exportData = [
-        ["System CS#:", cs],
-        ["Zone", "Serial Number"],
-        ...rows.filter(r => r.zone !== "").map(r => [r.zone, r.serial])
-    ];
-
-    const ws = XLSX.utils.aoa_to_sheet(exportData);
+    const data = [["System CS#:", cs], ["Zone", "Serial Number"], ...rows.filter(r => r.zone !== "").map(r => [r.zone, r.serial])];
+    const ws = XLSX.utils.aoa_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, cs); 
     XLSX.writeFile(wb, `${cs}.xlsx`);
@@ -280,7 +235,7 @@ document.getElementById('copyBtn').addEventListener('click', () => {
     const cs = document.getElementById('csInput').value;
     const body = rows.filter(r => r.zone !== "").map(r => `${r.zone}\t${r.serial}`).join('\n');
     navigator.clipboard.writeText(`System CS#: ${cs}\nZone\tSerial Number\n${body}`);
-    alert("Copied with CS# Header!");
+    alert("Copied!");
 });
 
 renderTable();
