@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f1117"/>
 <link rel="manifest" href="manifest.json">
-<title>Oran's 711s scanner</title>
+<title>Oran-SCAN711s</title>
 <style>
   *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
   :root {
@@ -16,12 +16,24 @@
     --accent:#00e5a0; --accentDim:rgba(0,229,160,0.12);
     --text:#e8eaf0; --muted:#7a7f95; --danger:#ff5c5c;
     --yellow:#ffff00;
+    --brandBlue: #3a86ff; /* Added for the new title color */
   }
   html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow-x: hidden; }
   body { padding: 10px 15px 160px; scroll-behavior: smooth; } 
   .flash-red { background-color: #660000 !important; }
   .wrap { max-width:680px; margin:0 auto; }
-  h1 { font-size: 18px; text-align: center; margin-bottom: 5px; color: var(--accent); }
+  
+  /* CHANGE #1: SHADOWED BLUE BRANDING */
+  h1 { 
+    font-size: 24px; 
+    text-align: center; 
+    margin-bottom: 10px; 
+    color: var(--brandBlue); 
+    font-weight: 800;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    letter-spacing: 1px;
+  }
+  
   .cs-input-wrap { display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
   .cs-input-wrap span { color: var(--yellow); font-weight: bold; font-size: 22px; margin-right: 5px; }
   .cs-input-wrap input { background: transparent; border: none; color: var(--yellow); width: 120px; outline: none; font-size: 22px; font-weight: bold; text-align: center; }
@@ -53,7 +65,7 @@
 </head>
 <body id="mainBody">
 <div class="wrap">
-  <h1>Oran's 711s scanner</h1>
+  <h1>Oran-SCAN711s</h1>
   <div class="cs-input-wrap"><span>#</span><input type="tel" id="csInput" maxlength="5" oninput="saveCS()"></div>
   <div class="last-scan-badge">
     <div class="badge-item"><div class="badge-label">Zone</div><div id="lastZoneVal" class="badge-val">---</div></div>
@@ -202,7 +214,6 @@ function handleZoneInput(idx, val) {
 function handleSerialInput(idx, val) {
     rows[idx].serial = val;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
-    // Quietly update the counter without redrawing the whole table
     document.getElementById('statFilled').innerText = rows.filter(r => r.serial && r.serial.trim().length === 10).length;
 }
 
