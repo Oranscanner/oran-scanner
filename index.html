@@ -27,9 +27,9 @@
   .cs-input-wrap span { color: var(--yellow); font-weight: bold; font-size: 22px; margin-right: 5px; }
   .cs-input-wrap input { background: transparent; border: none; color: var(--yellow); width: 120px; outline: none; font-size: 22px; font-weight: bold; text-align: center; }
   .top-stats { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-  .stat-mini { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; justify-content: space-around; align-items: center; }
+  .stat-mini { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; justify-content: center; align-items: center; gap: 5px; }
   .stat-val { font-size: 18px; font-weight: bold; color: var(--accent); }
-  .stat-label { font-size: 9px; color: var(--muted); }
+  .stat-label { font-size: 12px; color: var(--muted); }
   .last-scan-badge { display: flex; gap: 8px; margin-bottom: 10px; }
   .badge-item { flex: 1; background: var(--accentDim); border: 1px solid var(--accent); padding: 8px; border-radius: 8px; text-align: center; }
   .badge-label { font-size: 8px; color: var(--accent); text-transform: uppercase; }
@@ -44,7 +44,7 @@
   .invalid-field { border-color: var(--danger) !important; color: var(--danger) !important; }
   .btn { border-radius:8px; font-weight:600; cursor:pointer; border:none; display:flex; align-items:center; justify-content:center; }
   .btn-cam { padding:10px; width:100%; margin-bottom:8px; background:var(--accentDim); color:var(--accent); border:1px solid var(--accent); }
-  .btn-clear-mini { background: var(--danger); color: white; padding: 10px; flex: 1; font-size: 12px; }
+  .btn-clear-mini { background: var(--danger); color: white; padding: 10px; flex: 0.5; font-size: 12px; }
   .actions-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); padding: 15px; display: flex; gap: 10px; border-top: 1px solid var(--border); z-index: 100; padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
   .btn-export { background:var(--accent); color:var(--bg); padding:15px; flex:1.5; }
   .btn-copy { background:var(--surface); border:1px solid var(--border); color:white; flex:1; }
@@ -61,7 +61,10 @@
     <div class="badge-item"><div class="badge-label">Serial</div><div id="lastSerialVal" class="badge-val">----------</div></div>
   </div>
   <div class="top-stats">
-    <div class="stat-mini"><span class="stat-label">UNIQUE:</span><span id="statFilled" class="stat-val">0</span></div>
+    <div class="stat-mini">
+        <span id="statFilled" class="stat-val">0</span>
+        <span class="stat-label">Unique Zones</span>
+    </div>
     <button class="btn btn-clear-mini" onclick="clearAll()">Clear All</button>
   </div>
   <div class="card-tight">
@@ -183,8 +186,13 @@ function renderTable() {
         `;
         tbody.appendChild(div);
     });
-    document.getElementById('statFilled').innerText = rows.filter(r => r.serial && r.serial.trim().length === 10).length;
+    updateUniqueCount();
     localStorage.setItem('scannerRows', JSON.stringify(rows));
+}
+
+function updateUniqueCount() {
+    const count = rows.filter(r => r.serial && r.serial.trim().length === 10).length;
+    document.getElementById('statFilled').innerText = count;
 }
 
 function finalCheck(idx, val) {
@@ -194,19 +202,19 @@ function finalCheck(idx, val) {
     }
 }
 
-// CHANGE #2: Snappy focus jump exactly at 3 digits
 function handleZoneInput(idx, val) {
     rows[idx].zone = val;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
     if (val.length === 3 && idx + 1 < TOTAL) {
-        document.getElementById(`zone-${idx+1}`).focus();
+        const nextInput = document.getElementById(`zone-${idx+1}`);
+        if(nextInput) nextInput.focus();
     }
 }
 
 function handleSerialInput(idx, val) {
     rows[idx].serial = val;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
-    document.getElementById('statFilled').innerText = rows.filter(r => r.serial && r.serial.trim().length === 10).length;
+    updateUniqueCount();
 }
 
 function clearAll() { 
@@ -244,3 +252,8 @@ document.getElementById('copyBtn').addEventListener('click', () => {
     const dataRows = rows.filter(r => r.serial).map(r => `${r.zone}\t${r.serial}`).join('\n');
     navigator.clipboard.writeText(`CS#: ${cs}\n${dataRows}`);
     alert("Copied!");
+});
+renderTable();
+</script>
+</body>
+</html>
