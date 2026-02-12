@@ -17,46 +17,37 @@
   }
   html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow: hidden; }
   
-  /* FIXED HEADER SECTION */
+  /* FIXED HEADER */
   .header-fixed { position: fixed; top: 0; left: 0; right: 0; background: var(--bg); padding: 10px 15px 5px; z-index: 1000; border-bottom: 1px solid var(--border); }
-  
   h1 { font-size: 20px; text-align: center; margin-bottom: 8px; color: var(--accent); font-weight: 800; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
   
   .cs-input-wrap { display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 5px; margin-bottom: 8px; }
   .cs-input-wrap span { color: var(--yellow); font-weight: bold; font-size: 18px; margin-right: 5px; }
   .cs-input-wrap input { background: transparent; border: none; color: var(--yellow); width: 80px; outline: none; font-size: 18px; font-weight: bold; text-align: center; }
   
-  /* RESTORED: Last Scan Badge  */
   .last-scan-badge { display: flex; gap: 8px; margin-bottom: 8px; }
   .badge-item { flex: 1; background: rgba(58, 134, 255, 0.1); border: 1px solid var(--accent); padding: 6px; border-radius: 8px; text-align: center; }
   .badge-label { font-size: 8px; color: var(--accent); text-transform: uppercase; }
   .badge-val { font-size: 12px; font-weight: bold; }
 
-  /* RESTORED: Unique Zones Stats  */
   .top-stats { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
   .stat-mini { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px; text-align: center; }
   .stat-val { font-size: 18px; font-weight: bold; color: var(--accent); }
 
-  /* BRANDED: Start Camera Box  */
   .btn-cam { padding:10px; width:100%; margin-bottom:8px; background:#add8e6; color:#00008b; border:none; border-radius:8px; font-weight:bold; cursor:pointer; }
   
-  /* SCROLLING AREA [cite: 18] */
-  .scroll-area { margin-top: 245px; height: calc(100vh - 355px); overflow-y: auto; padding: 0 15px 100px; scroll-behavior: smooth; }
-  
+  /* SCROLLING AREA */
+  .scroll-area { margin-top: 245px; height: calc(100vh - 355px); overflow-y: auto; padding: 0 15px 120px; scroll-behavior: smooth; }
   .tbl-row { display:grid; grid-template-columns:30px 1fr 1.5fr 30px; gap:6px; align-items:center; padding:4px; margin-bottom: 4px; border-radius:6px; background:rgba(255,255,255,0.03); }
   
-  /* High Contrast Completion [cite: 19] */
   .complete-row input { background: var(--successBg) !important; color: var(--successText) !important; }
-
   .tbl-row input { background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:8px; color:white; font-size: 14px; width:100%; }
-  .error-highlight { border: 2px solid var(--danger) !important; background: rgba(255, 92, 92, 0.1) !important; }
+  .error-highlight { border: 2px solid var(--danger) !important; background: rgba(255, 92, 92, 0.2) !important; }
 
-  /* FIXED FOOTER */
   .actions-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); padding: 15px; display: flex; gap: 10px; border-top: 1px solid var(--border); z-index: 1000; padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
   .btn-export { background: #217346; color: white; padding: 12px; flex: 1.5; border-radius: 8px; border: none; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .btn-copy { background:var(--surface); border:1px solid var(--border); color:white; flex:1; border-radius: 8px; }
   
-  /* BLUE JUMP ARROW  */
   .jump-btn { position: fixed; bottom: 120px; right: 20px; width: 50px; height: 50px; background: var(--accent); color: white; border-radius: 50%; display: none; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-size: 24px; align-items:center; justify-content:center; border: 2px solid var(--bg); }
   
   #msg { text-align: center; font-size: 11px; color: var(--danger); font-weight: bold; height: 15px; margin-bottom: 2px; }
@@ -69,16 +60,13 @@
 <div class="header-fixed">
   <h1>Oran-SCAN711s</h1>
   <div class="cs-input-wrap"><span>System CS#:</span><input type="tel" id="csInput" maxlength="5" oninput="saveCS()"></div>
-  
   <div class="last-scan-badge">
     <div class="badge-item"><div class="badge-label">Zone</div><div id="lastZoneVal" class="badge-val">---</div></div>
     <div class="badge-item"><div class="badge-label">Serial</div><div id="lastSerialVal" class="badge-val">----------</div></div>
   </div>
-
   <div class="top-stats">
     <div class="stat-mini"><span id="statFilled" class="stat-val">0</span> <span style="font-size: 10px; color: var(--muted);">Unique Zones</span></div>
   </div>
-
   <div id="msg"></div>
   <button class="btn-cam" id="camBtn">▶ START CAMERA</button>
 </div>
@@ -104,6 +92,7 @@
 const TOTAL = 65; 
 let rows = JSON.parse(localStorage.getItem('scannerRows')) || Array.from({length:TOTAL}, () => ({zone:'', serial:''}));
 let isScanning = false;
+let lastScannedTime = 0;
 
 document.getElementById('csInput').value = localStorage.getItem('csNumber') || '';
 function saveCS() { localStorage.setItem('csNumber', document.getElementById('csInput').value); }
@@ -114,8 +103,47 @@ function triggerError(text) {
     document.getElementById('mainBody').classList.add('flash-red');
     setTimeout(() => {
         document.getElementById('mainBody').classList.remove('flash-red');
-        setTimeout(() => { m.innerText = ""; }, 4000);
+        setTimeout(() => { if(m.innerText === text) m.innerText = ""; }, 4000);
     }, 300);
+}
+
+function playSound(type) {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const gain = audioCtx.createGain();
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        const osc = audioCtx.createOscillator();
+        osc.connect(gain);
+        if(type === 'success') {
+            osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        } else {
+            osc.type = 'square'; osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(150, audioCtx.currentTime + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+        }
+    } catch(e) {}
+}
+
+function handleData(code) {
+    const now = Date.now();
+    if (now - lastScannedTime < 2000) return;
+    if (code.length !== 10) { triggerError("⚠️ INVALID LENGTH"); playSound('error'); return; }
+    if (rows.some(r => r.serial === code)) { triggerError("❌ DUPLICATE SERIAL"); playSound('error'); lastScannedTime = now; return; }
+
+    const idx = rows.findIndex(r => r.serial === "");
+    if (idx !== -1) {
+        rows[idx].serial = code;
+        document.getElementById('lastZoneVal').innerText = rows[idx].zone || "---";
+        document.getElementById('lastSerialVal').innerText = code;
+        playSound('success');
+        if (navigator.vibrate) navigator.vibrate(50);
+        lastScannedTime = now;
+        renderTable();
+    }
 }
 
 function renderTable() {
@@ -127,8 +155,11 @@ function renderTable() {
         div.className = `tbl-row ${isComplete ? 'complete-row' : ''}`;
         div.innerHTML = `
             <span style="font-size:9px; color:var(--muted)">${i+1}</span>
-            <input type="tel" id="zone-${i}" maxlength="3" value="${r.zone}" onblur="validateZone(${i}, this.value)">
-            <input type="tel" id="ser-${i}" maxlength="10" value="${r.serial}" onblur="validateSerial(${i}, this.value)">
+            <input type="tel" id="zone-${i}" maxlength="3" value="${r.zone}" 
+                   oninput="handleZoneInput(${i}, this.value)" 
+                   onblur="validateZone(${i}, this.value)">
+            <input type="tel" id="ser-${i}" maxlength="10" value="${r.serial}" 
+                   onblur="validateSerial(${i}, this.value)">
             <button onclick="clearRow(${i})" style="color:var(--danger); background:none; border:none;">×</button>
         `;
         tbody.appendChild(div);
@@ -137,16 +168,24 @@ function renderTable() {
     localStorage.setItem('scannerRows', JSON.stringify(rows));
 }
 
+function handleZoneInput(idx, val) {
+    rows[idx].zone = val;
+    if (val.length === 3) {
+        const nextZone = document.getElementById(`zone-${idx + 1}`);
+        if (nextZone) nextZone.focus();
+    }
+}
+
 function validateZone(idx, val) {
     if (val === "") return;
     const isDup = rows.some((r, i) => r.zone === val && i !== idx);
     if (val.length !== 3 || isDup) {
         triggerError(isDup ? "❌ DUPLICATE ZONE" : "⚠️ 3 DIGITS REQUIRED");
+        playSound('error');
         document.getElementById(`zone-${idx}`).classList.add('error-highlight');
         setTimeout(() => document.getElementById(`zone-${idx}`).focus(), 10);
     } else {
         document.getElementById(`zone-${idx}`).classList.remove('error-highlight');
-        rows[idx].zone = val;
         renderTable();
     }
 }
@@ -156,6 +195,7 @@ function validateSerial(idx, val) {
     const isDup = rows.some((r, i) => r.serial === val && i !== idx);
     if (val.length !== 10 || isDup) {
         triggerError(isDup ? "❌ DUPLICATE SERIAL" : "⚠️ 10 DIGITS REQUIRED");
+        playSound('error');
         document.getElementById(`ser-${idx}`).classList.add('error-highlight');
         setTimeout(() => document.getElementById(`ser-${idx}`).focus(), 10);
     } else {
@@ -166,16 +206,8 @@ function validateSerial(idx, val) {
 }
 
 function clearRow(i) { rows[i] = {zone:'', serial:''}; renderTable(); }
-
-function toggleJumpBtn() {
-    const btn = document.getElementById('jumpBtn');
-    // Appear if first row scrolled off [cite: 11]
-    btn.style.display = document.getElementById('scrollContainer').scrollTop > 50 ? 'flex' : 'none';
-}
-
-function scrollToTop() {
-    document.getElementById('scrollContainer').scrollTo({top: 0, behavior: 'smooth'});
-}
+function toggleJumpBtn() { document.getElementById('jumpBtn').style.display = document.getElementById('scrollContainer').scrollTop > 50 ? 'flex' : 'none'; }
+function scrollToTop() { document.getElementById('scrollContainer').scrollTo({top: 0, behavior: 'smooth'}); }
 
 async function startScanner() {
     const container = document.getElementById('interactive');
@@ -185,26 +217,19 @@ async function startScanner() {
     const vids = devices.filter(d => d.kind === 'videoinput');
     Quagga.init({
         inputStream: { name: "Live", type: "LiveStream", target: "#interactive", constraints: { deviceId: vids[vids.length-1].deviceId, facingMode: "environment" }},
-        decoder: { readers: ["code_128_reader", "code_39_reader", "ean_reader"] }
+        decoder: { readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader"] }
     }, (err) => {
         if (!err) { Quagga.start(); isScanning = true; document.getElementById('camBtn').innerText = "⏹ STOP"; }
     });
 }
 
-Quagga.onDetected((data) => {
-    const code = data.codeResult.code;
-    const idx = rows.findIndex(r => r.serial === "");
-    if (idx !== -1) {
-        rows[idx].serial = code;
-        document.getElementById('lastZoneVal').innerText = rows[idx].zone || "---";
-        document.getElementById('lastSerialVal').innerText = code;
-        renderTable();
-    }
-});
-
+Quagga.onDetected((data) => handleData(data.codeResult.code));
 document.getElementById('camBtn').addEventListener('click', startScanner);
 
 document.getElementById('exportBtn').addEventListener('click', () => {
+    const cs = document.getElementById('csInput').value;
+    if (cs.length !== 5) { triggerError("⚠️ 5-DIGIT CS REQUIRED"); return; }
+    
     const errorIdx = rows.findIndex(r => r.serial !== "" && r.zone === "");
     if (errorIdx !== -1) {
         triggerError("❌ SERIAL MISSING ZONE");
@@ -212,16 +237,23 @@ document.getElementById('exportBtn').addEventListener('click', () => {
         document.getElementById(`zone-${errorIdx}`).scrollIntoView();
         return;
     }
-    const data = [["Zone", "Serial"], ...rows.filter(r => r.zone !== "").map(r => [r.zone, r.serial])];
-    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    const exportData = [
+        ["System CS#:", cs],
+        ["Zone", "Serial Number"],
+        ...rows.filter(r => r.zone !== "").map(r => [r.zone, r.serial])
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
-    XLSX.writeFile(wb, "Oran-SCAN711s.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, cs); // CS as worksheet name
+    XLSX.writeFile(wb, `${cs}.xlsx`); // CS as filename
 });
 
 document.getElementById('copyBtn').addEventListener('click', () => {
-    const data = rows.filter(r => r.zone !== "").map(r => `${r.zone}\t${r.serial}`).join('\n');
-    navigator.clipboard.writeText(data);
+    const cs = document.getElementById('csInput').value;
+    const body = rows.filter(r => r.zone !== "").map(r => `${r.zone}\t${r.serial}`).join('\n');
+    navigator.clipboard.writeText(`System CS#: ${cs}\nZone\tSerial Number\n${body}`);
     alert("Copied!");
 });
 
