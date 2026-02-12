@@ -16,23 +16,15 @@
     --accent:#00e5a0; --accentDim:rgba(0,229,160,0.12);
     --text:#e8eaf0; --muted:#7a7f95; --danger:#ff5c5c;
     --yellow:#ffff00;
-    --brandBlue: #3a86ff; /* Added for the new title color */
+    --brandBlue: #3a86ff;
   }
   html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow-x: hidden; }
   body { padding: 10px 15px 160px; scroll-behavior: smooth; } 
   .flash-red { background-color: #660000 !important; }
   .wrap { max-width:680px; margin:0 auto; }
   
-  /* CHANGE #1: SHADOWED BLUE BRANDING */
-  h1 { 
-    font-size: 24px; 
-    text-align: center; 
-    margin-bottom: 10px; 
-    color: var(--brandBlue); 
-    font-weight: 800;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    letter-spacing: 1px;
-  }
+  /* REVISED CHANGE #1: BLUE TEXT ONLY, NO SHADOW */
+  h1 { font-size: 18px; text-align: center; margin-bottom: 5px; color: var(--brandBlue); }
   
   .cs-input-wrap { display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
   .cs-input-wrap span { color: var(--yellow); font-weight: bold; font-size: 22px; margin-right: 5px; }
