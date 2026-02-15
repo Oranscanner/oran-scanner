@@ -21,26 +21,11 @@
     --camText: #00008b;
   }
   
-  /* Layout: Lock the screen and use flex for sticky behavior */
   html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow: hidden; }
   .main-container { height: 100vh; display: flex; flex-direction: column; }
   
-  /* Sticky Section */
-  .sticky-top { 
-    padding: 10px 15px 5px; 
-    background: var(--bg); 
-    z-index: 10; 
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-
-  /* Scrolling Section */
-  .scroll-area { 
-    flex: 1; 
-    overflow-y: auto; 
-    padding: 10px 15px 180px; 
-    -webkit-overflow-scrolling: touch;
-  }
+  .sticky-top { padding: 10px 15px 5px; background: var(--bg); z-index: 10; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .scroll-area { flex: 1; overflow-y: auto; padding: 10px 15px 180px; -webkit-overflow-scrolling: touch; }
 
   .flash-red { background-color: #660000 !important; }
   .wrap { max-width:680px; margin:0 auto; }
@@ -53,7 +38,6 @@
   .top-stats { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
   .stat-mini { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px; display: flex; justify-content: center; align-items: center; gap: 8px; }
   .stat-val { font-size: 18px; font-weight: bold; color: var(--accent); }
-  .stat-label { font-size: 12px; color: var(--muted); font-weight: bold; }
 
   .last-scan-badge { display: flex; gap: 8px; margin-bottom: 10px; }
   .badge-item { flex: 1; background: var(--accentDim); border: 1px solid var(--accent); padding: 8px; border-radius: 8px; text-align: center; }
@@ -66,15 +50,11 @@
   
   .tbl-body { display:flex; flex-direction:column; gap:4px; margin-bottom: 20px; }
   .tbl-row { display:grid; grid-template-columns:30px 1fr 1.5fr 30px; gap:4px; align-items:center; padding:4px; border-radius:6px; background:rgba(255,255,255,0.03); }
-  .tbl-row input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px; color:white; font-size: 14px; width:100%; }
+  .tbl-row input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px; color:white; font-size: 14px; width:100%; outline: none; }
 
-  /* COMPLETED ROW STYLE: White background, Black text */
-  .row-complete { background: #ffffff !important; }
-  .row-complete input { background: #ffffff !important; color: #000000 !important; border-color: #cccccc !important; }
-  .row-complete span { color: #555555 !important; }
-
-  .editable-serial { color: var(--accent); font-weight: bold; border: 1px solid var(--border) !important; }
-  .invalid-field { border-color: var(--danger) !important; color: var(--danger) !important; }
+  /* COMPLETED BOX LOGIC */
+  .box-complete { background: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; font-weight: bold; }
+  .invalid-field { border: 1px solid var(--danger) !important; color: var(--danger) !important; }
   
   .btn { border-radius:8px; font-weight:600; cursor:pointer; border:none; display:flex; align-items:center; justify-content:center; }
   .btn-cam { padding:10px; width:100%; margin-bottom:8px; background:var(--camBg); color:var(--camText); border:1px solid var(--brandBlue); }
@@ -85,7 +65,6 @@
   .btn-copy { background:var(--surface); border:1px solid var(--border); color:white; flex:1; }
   
   .jump-btn { position: fixed; bottom: 180px; right: 20px; width: 50px; height: 50px; background: var(--brandBlue); color: white; border-radius: 50%; display: none; z-index: 999; box-shadow: 0 4px 15px rgba(0,0,0,0.6); font-size: 24px; align-items:center; justify-content:center; border: 2px solid var(--bg); }
-  
   #msg { text-align: center; font-size: 11px; color: var(--danger); font-weight: bold; height: 15px; margin-bottom: 5px; }
 </style>
 </head>
@@ -112,7 +91,7 @@
         <div id="interactive" class="viewport" style="display:none;"></div>
         <button class="btn btn-cam" id="camBtn">▶ START CAMERA</button>
         <div style="display:flex; gap:6px;">
-            <input type="tel" id="manualInput" placeholder="10-digit..." maxlength="10" style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px; color:white;">
+            <input type="tel" id="manualInput" placeholder="10-digit..." oninput="checkManualLength(this)" style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px; color:white;">
             <button id="addBtn" class="btn" style="background:var(--accent); color:var(--bg); padding:0 12px; font-size: 12px;">ADD</button>
         </div>
       </div>
@@ -135,9 +114,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/oran-scanner/service-worker.js', { scope: '/oran-scanner/' });
-}
 const TOTAL = 65; 
 let rows = JSON.parse(localStorage.getItem('scannerRows')) || Array.from({length:TOTAL}, () => ({zone:'', serial:''}));
 let isScanning = false;
@@ -149,10 +125,14 @@ function saveCS() { localStorage.setItem('csNumber', document.getElementById('cs
 function handleScroll() {
     const jumpBtn = document.getElementById('jumpBtn');
     const scrollArea = document.getElementById('scrollArea');
-    if (scrollArea.scrollTop > 300) {
-        jumpBtn.style.display = 'flex';
-    } else {
-        jumpBtn.style.display = 'none';
+    jumpBtn.style.display = scrollArea.scrollTop > 300 ? 'flex' : 'none';
+}
+
+function checkManualLength(el) {
+    if (el.value.length > 10) {
+        triggerErrorVisual("⚠️ MAX 10 DIGITS");
+        playSound('error');
+        el.value = el.value.slice(0, 10); // Hard stop
     }
 }
 
@@ -168,39 +148,31 @@ function triggerErrorVisual(customMsg) {
 function playSound(type) {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const gain = audioCtx.createGain();
-        gain.connect(audioCtx.destination);
-        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
         const osc = audioCtx.createOscillator();
-        osc.connect(gain);
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
         if(type === 'success') {
-            osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         } else {
-            osc.type = 'square'; osc.frequency.setValueAtTime(220, audioCtx.currentTime);
-            osc.frequency.linearRampToValueAtTime(150, audioCtx.currentTime + 0.1);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            osc.type = 'square'; osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
         }
     } catch(e) {}
 }
 
 function handleData(code) {
-    const msg = document.getElementById('msg');
     const now = Date.now();
     if (now - lastScannedTime < 2000) return; 
     if (code.length !== 10) { triggerErrorVisual("⚠️ INVALID"); playSound('error'); return; }
-    if (rows.some(r => r.serial === code)) { triggerErrorVisual("❌ DUPLICATE"); playSound('error'); lastScannedTime = now; return; }
+    if (rows.some(r => r.serial === code)) { triggerErrorVisual("❌ DUPLICATE"); playSound('error'); return; }
 
     const idx = rows.findIndex(r => !r.serial);
     if (idx !== -1) {
-        msg.innerText = "";
         rows[idx].serial = code;
         document.getElementById('lastZoneVal').innerText = rows[idx].zone || "N/A";
         document.getElementById('lastSerialVal').innerText = code;
         playSound('success');
-        if (navigator.vibrate) navigator.vibrate(50);
         lastScannedTime = now; 
         renderTable();
     }
@@ -231,19 +203,20 @@ function renderTable() {
     tbody.innerHTML = '';
     rows.forEach((r, i) => {
         const div = document.createElement('div');
-        // Logic for White/Black completed rows
-        const isComplete = r.zone.length === 3 && r.serial.length === 10;
-        div.className = `tbl-row ${isComplete ? 'row-complete' : ''}`;
-        
-        const isInvalid = r.serial.length > 0 && r.serial.length !== 10;
+        div.className = 'tbl-row';
+        const isZoneDone = r.zone.length === 3;
+        const isSerDone = r.serial.length === 10;
+        const isInvalidZone = r.zone.length > 0 && r.zone.length < 3;
+        const isInvalidSer = r.serial.length > 0 && r.serial.length < 10;
+
         div.innerHTML = `
             <span style="font-size:9px; color:var(--muted)">${i+1}</span>
-            <input type="tel" id="zone-${i}" maxlength="3" value="${r.zone}" oninput="handleZoneInput(${i}, this.value)">
+            <input type="tel" id="zone-${i}" maxlength="3" 
+              class="${isZoneDone ? 'box-complete' : ''} ${isInvalidZone ? 'invalid-field' : ''}" 
+              value="${r.zone}" oninput="handleZoneInput(${i}, this.value)" onblur="finalCheckZone(${i}, this.value)">
             <input type="tel" id="ser-${i}" maxlength="10" 
-              class="editable-serial ${isInvalid ? 'invalid-field' : ''}" 
-              value="${r.serial}" 
-              oninput="handleSerialInput(${i}, this.value)" 
-              onblur="finalCheck(${i}, this.value)">
+              class="${isSerDone ? 'box-complete' : ''} ${isInvalidSer ? 'invalid-field' : ''}" 
+              value="${r.serial}" oninput="handleSerialInput(${i}, this.value)" onblur="finalCheckSer(${i}, this.value)">
             <button onclick="rows[${i}].serial=''; renderTable();" style="background:none; border:none; color:var(--danger); cursor:pointer;">×</button>
         `;
         tbody.appendChild(div);
@@ -253,22 +226,30 @@ function renderTable() {
 }
 
 function updateUniqueCount() {
-    const count = rows.filter(r => r.serial && r.serial.trim().length === 10).length;
-    document.getElementById('statFilled').innerText = count;
+    document.getElementById('statFilled').innerText = rows.filter(r => r.serial.length === 10).length;
 }
 
-function finalCheck(idx, val) {
-    if (val.length > 0 && val.length !== 10) {
+function finalCheckZone(idx, val) {
+    if (val.length > 0 && val.length < 3) {
+        triggerErrorVisual("⚠️ ZONE REQUIRES 3 DIGITS");
+        playSound('error');
+        renderTable();
+    }
+}
+
+function finalCheckSer(idx, val) {
+    if (val.length > 0 && val.length < 10) {
         triggerErrorVisual("⚠️ 10 DIGITS REQUIRED");
         playSound('error');
+        renderTable();
     }
 }
 
 function handleZoneInput(idx, val) {
     rows[idx].zone = val;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
-    if (val.length === 3 && idx + 1 < TOTAL) {
-        renderTable(); // Rerender to apply White background immediately
+    if (val.length === 3) {
+        renderTable();
         const nextInput = document.getElementById(`zone-${idx+1}`);
         if(nextInput) nextInput.focus();
     }
@@ -277,16 +258,14 @@ function handleZoneInput(idx, val) {
 function handleSerialInput(idx, val) {
     rows[idx].serial = val;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
-    if (val.length === 10) renderTable(); // Rerender to apply White background immediately
+    if (val.length === 10) renderTable();
     updateUniqueCount();
 }
 
 function clearAll() { 
     if(confirm("Wipe everything?")){ 
         rows=Array.from({length:TOTAL},()=>({zone:'',serial:''})); 
-        document.getElementById('csInput').value = '';
-        localStorage.clear();
-        renderTable(); 
+        localStorage.clear(); renderTable(); 
     }
 }
 
@@ -298,13 +277,9 @@ document.getElementById('addBtn').addEventListener('click', () => {
 
 document.getElementById('exportBtn').addEventListener('click', () => {
     const cs = document.getElementById('csInput').value;
-    if (cs.length !== 5) { alert("5-digit CS required"); return; }
-    const activeData = rows.filter(r => r.serial);
-    if (activeData.some(r => r.serial.length !== 10)) { 
-        triggerErrorVisual("🛑 FIX RED SERIALS FIRST");
-        return; 
-    }
-    const dataWithCS = [["System CS#:", cs], ["Zone", "Serial Number"], ...activeData.map(r => [r.zone, r.serial])];
+    if (cs.length !== 5) return alert("5-digit CS required");
+    const activeData = rows.filter(r => r.serial.length === 10);
+    const dataWithCS = [["System CS#:", cs], ["Zone", "Serial"], ...activeData.map(r => [r.zone, r.serial])];
     const ws = XLSX.utils.aoa_to_sheet(dataWithCS);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Inventory");
