@@ -52,7 +52,6 @@
   .tbl-row { display:grid; grid-template-columns:30px 1fr 1.5fr 30px; gap:4px; align-items:center; padding:4px; border-radius:6px; background:rgba(255,255,255,0.03); }
   .tbl-row input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px; color:white; font-size: 14px; width:100%; outline: none; }
 
-  /* COMPLETED BOX LOGIC */
   .box-complete { background: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; font-weight: bold; }
   .invalid-field { border: 1px solid var(--danger) !important; color: var(--danger) !important; }
   
@@ -132,7 +131,7 @@ function checkManualLength(el) {
     if (el.value.length > 10) {
         triggerErrorVisual("⚠️ MAX 10 DIGITS");
         playSound('error');
-        el.value = el.value.slice(0, 10); // Hard stop
+        el.value = el.value.slice(0, 10);
     }
 }
 
@@ -278,7 +277,15 @@ document.getElementById('addBtn').addEventListener('click', () => {
 document.getElementById('exportBtn').addEventListener('click', () => {
     const cs = document.getElementById('csInput').value;
     if (cs.length !== 5) return alert("5-digit CS required");
-    const activeData = rows.filter(r => r.serial.length === 10);
+    
+    // EXPORT ALL ROWS THAT HAVE A ZONE ENTERED
+    const activeData = rows.filter(r => r.zone.trim().length > 0);
+    
+    if (activeData.some(r => r.serial.length > 0 && r.serial.length !== 10)) { 
+        triggerErrorVisual("🛑 FIX RED SERIALS FIRST");
+        return; 
+    }
+    
     const dataWithCS = [["System CS#:", cs], ["Zone", "Serial"], ...activeData.map(r => [r.zone, r.serial])];
     const ws = XLSX.utils.aoa_to_sheet(dataWithCS);
     const wb = XLSX.utils.book_new();
@@ -288,7 +295,8 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 
 document.getElementById('copyBtn').addEventListener('click', () => {
     const cs = document.getElementById('csInput').value;
-    const dataRows = rows.filter(r => r.serial).map(r => `${r.zone}\t${r.serial}`).join('\n');
+    // COPY ALL ROWS THAT HAVE A ZONE ENTERED
+    const dataRows = rows.filter(r => r.zone.trim().length > 0).map(r => `${r.zone}\t${r.serial}`).join('\n');
     navigator.clipboard.writeText(`CS#: ${cs}\n${dataRows}`);
     alert("Copied!");
 });
