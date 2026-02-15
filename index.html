@@ -17,12 +17,35 @@
     --text:#e8eaf0; --muted:#7a7f95; --danger:#ff5c5c;
     --yellow:#ffff00;
     --brandBlue: #3a86ff;
+    --camBg: #add8e6; 
+    --camText: #00008b;
   }
-  html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow-x: hidden; }
-  body { padding: 10px 15px 160px; scroll-behavior: smooth; } 
+  
+  /* Layout: Lock the screen and use flex for sticky behavior */
+  html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow: hidden; }
+  .main-container { height: 100vh; display: flex; flex-direction: column; }
+  
+  /* Sticky Section */
+  .sticky-top { 
+    padding: 10px 15px 5px; 
+    background: var(--bg); 
+    z-index: 10; 
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  /* Scrolling Section */
+  .scroll-area { 
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 10px 15px 180px; 
+    -webkit-overflow-scrolling: touch;
+  }
+
   .flash-red { background-color: #660000 !important; }
   .wrap { max-width:680px; margin:0 auto; }
   h1 { font-size: 18px; text-align: center; margin-bottom: 5px; color: var(--brandBlue); }
+  
   .cs-input-wrap { display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
   .cs-input-wrap span { color: var(--yellow); font-weight: bold; font-size: 22px; margin-right: 5px; }
   .cs-input-wrap input { background: transparent; border: none; color: var(--yellow); width: 120px; outline: none; font-size: 22px; font-weight: bold; text-align: center; }
@@ -36,58 +59,79 @@
   .badge-item { flex: 1; background: var(--accentDim); border: 1px solid var(--accent); padding: 8px; border-radius: 8px; text-align: center; }
   .badge-label { font-size: 8px; color: var(--accent); text-transform: uppercase; }
   .badge-val { font-size: 14px; font-weight: bold; }
+  
   .card-tight { background:var(--surface); border-radius:10px; border:1px solid var(--border); padding:8px; margin-bottom:10px; }
   #interactive.viewport { width: 100%; max-width: 260px; margin: 0 auto 8px; aspect-ratio: 1/1; border-radius:8px; overflow:hidden; border:1px solid var(--border); position:relative; background: #000; }
   #interactive video { width: 100%; height: 100%; object-fit: cover; }
+  
   .tbl-body { display:flex; flex-direction:column; gap:4px; margin-bottom: 20px; }
   .tbl-row { display:grid; grid-template-columns:30px 1fr 1.5fr 30px; gap:4px; align-items:center; padding:4px; border-radius:6px; background:rgba(255,255,255,0.03); }
   .tbl-row input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px; color:white; font-size: 14px; width:100%; }
+
+  /* COMPLETED ROW STYLE: White background, Black text */
+  .row-complete { background: #ffffff !important; }
+  .row-complete input { background: #ffffff !important; color: #000000 !important; border-color: #cccccc !important; }
+  .row-complete span { color: #555555 !important; }
+
   .editable-serial { color: var(--accent); font-weight: bold; border: 1px solid var(--border) !important; }
   .invalid-field { border-color: var(--danger) !important; color: var(--danger) !important; }
+  
   .btn { border-radius:8px; font-weight:600; cursor:pointer; border:none; display:flex; align-items:center; justify-content:center; }
-  .btn-cam { padding:10px; width:100%; margin-bottom:8px; background:var(--accentDim); color:var(--accent); border:1px solid var(--accent); }
+  .btn-cam { padding:10px; width:100%; margin-bottom:8px; background:var(--camBg); color:var(--camText); border:1px solid var(--brandBlue); }
   .btn-clear-mini { background: var(--danger); color: white; padding: 10px; flex: 0.5; font-size: 12px; }
+  
   .actions-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); padding: 15px; display: flex; gap: 10px; border-top: 1px solid var(--border); z-index: 100; padding-bottom: calc(15px + env(safe-area-inset-bottom)); }
   .btn-export { background:var(--accent); color:var(--bg); padding:15px; flex:1.5; }
   .btn-copy { background:var(--surface); border:1px solid var(--border); color:white; flex:1; }
   
-  /* Blue Circle Jump Button - Hidden by default */
   .jump-btn { position: fixed; bottom: 180px; right: 20px; width: 50px; height: 50px; background: var(--brandBlue); color: white; border-radius: 50%; display: none; z-index: 999; box-shadow: 0 4px 15px rgba(0,0,0,0.6); font-size: 24px; align-items:center; justify-content:center; border: 2px solid var(--bg); }
   
   #msg { text-align: center; font-size: 11px; color: var(--danger); font-weight: bold; height: 15px; margin-bottom: 5px; }
 </style>
 </head>
-<body id="mainBody" onscroll="handleScroll()">
-<div class="wrap">
-  <h1>Oran-SCAN711s</h1>
-  <div class="cs-input-wrap"><span>#</span><input type="tel" id="csInput" maxlength="5" oninput="saveCS()"></div>
-  <div class="last-scan-badge">
-    <div class="badge-item"><div class="badge-label">Zone</div><div id="lastZoneVal" class="badge-val">---</div></div>
-    <div class="badge-item"><div class="badge-label">Serial</div><div id="lastSerialVal" class="badge-val">----------</div></div>
-  </div>
-  <div class="top-stats">
-    <div class="stat-mini">
-        <span id="statFilled" class="stat-val">0</span>
-        <span class="stat-label">Unique Zones</span>
+<body id="mainBody">
+
+<div class="main-container">
+  <div class="sticky-top">
+    <div class="wrap">
+      <h1>Oran-SCAN711s</h1>
+      <div class="cs-input-wrap"><span>#</span><input type="tel" id="csInput" maxlength="5" oninput="saveCS()"></div>
+      <div class="last-scan-badge">
+        <div class="badge-item"><div class="badge-label">Zone</div><div id="lastZoneVal" class="badge-val">---</div></div>
+        <div class="badge-item"><div class="badge-label">Serial</div><div id="lastSerialVal" class="badge-val">----------</div></div>
+      </div>
+      <div class="top-stats">
+        <div class="stat-mini">
+            <span id="statFilled" class="stat-val">0</span>
+            <span class="stat-label">Unique Zones</span>
+        </div>
+        <button class="btn btn-clear-mini" onclick="clearAll()">Clear All</button>
+      </div>
+      <div class="card-tight">
+        <div id="msg"></div>
+        <div id="interactive" class="viewport" style="display:none;"></div>
+        <button class="btn btn-cam" id="camBtn">▶ START CAMERA</button>
+        <div style="display:flex; gap:6px;">
+            <input type="tel" id="manualInput" placeholder="10-digit..." maxlength="10" style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px; color:white;">
+            <button id="addBtn" class="btn" style="background:var(--accent); color:var(--bg); padding:0 12px; font-size: 12px;">ADD</button>
+        </div>
+      </div>
     </div>
-    <button class="btn btn-clear-mini" onclick="clearAll()">Clear All</button>
   </div>
-  <div class="card-tight">
-    <div id="msg"></div>
-    <div id="interactive" class="viewport" style="display:none;"></div>
-    <button class="btn btn-cam" id="camBtn">▶ START CAMERA</button>
-    <div style="display:flex; gap:6px;">
-        <input type="tel" id="manualInput" placeholder="10-digit..." maxlength="10" style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:8px; color:white;">
-        <button id="addBtn" class="btn" style="background:var(--accent); color:var(--bg); padding:0 12px; font-size: 12px;">ADD</button>
+
+  <div class="scroll-area" id="scrollArea" onscroll="handleScroll()">
+    <div class="wrap">
+      <div class="tbl-body" id="tableBody"></div>
     </div>
   </div>
-  <div class="tbl-body" id="tableBody"></div>
+
   <div class="actions-fixed">
     <button class="btn btn-export" id="exportBtn">EXPORT EXCEL</button>
     <button class="btn btn-copy" id="copyBtn">Copy</button>
   </div>
-  <button class="btn jump-btn" id="jumpBtn" onclick="window.scrollTo(0,0)">↑</button>
+  <button class="btn jump-btn" id="jumpBtn" onclick="document.getElementById('scrollArea').scrollTo(0,0)">↑</button>
 </div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -104,17 +148,11 @@ function saveCS() { localStorage.setItem('csNumber', document.getElementById('cs
 
 function handleScroll() {
     const jumpBtn = document.getElementById('jumpBtn');
-    const tableBody = document.getElementById('tableBody');
-    const firstRow = tableBody.firstChild;
-    
-    if (firstRow) {
-        const rect = firstRow.getBoundingClientRect();
-        // Show button only when first row is scrolled off the top
-        if (rect.bottom < 0) {
-            jumpBtn.style.display = 'flex';
-        } else {
-            jumpBtn.style.display = 'none';
-        }
+    const scrollArea = document.getElementById('scrollArea');
+    if (scrollArea.scrollTop > 300) {
+        jumpBtn.style.display = 'flex';
+    } else {
+        jumpBtn.style.display = 'none';
     }
 }
 
@@ -193,7 +231,10 @@ function renderTable() {
     tbody.innerHTML = '';
     rows.forEach((r, i) => {
         const div = document.createElement('div');
-        div.className = 'tbl-row';
+        // Logic for White/Black completed rows
+        const isComplete = r.zone.length === 3 && r.serial.length === 10;
+        div.className = `tbl-row ${isComplete ? 'row-complete' : ''}`;
+        
         const isInvalid = r.serial.length > 0 && r.serial.length !== 10;
         div.innerHTML = `
             <span style="font-size:9px; color:var(--muted)">${i+1}</span>
@@ -227,6 +268,7 @@ function handleZoneInput(idx, val) {
     rows[idx].zone = val;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
     if (val.length === 3 && idx + 1 < TOTAL) {
+        renderTable(); // Rerender to apply White background immediately
         const nextInput = document.getElementById(`zone-${idx+1}`);
         if(nextInput) nextInput.focus();
     }
@@ -235,6 +277,7 @@ function handleZoneInput(idx, val) {
 function handleSerialInput(idx, val) {
     rows[idx].serial = val;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
+    if (val.length === 10) renderTable(); // Rerender to apply White background immediately
     updateUniqueCount();
 }
 
