@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f1117"/>
-<link rel="manifest" href="manifest.json">
 <title>oranSCAN-711s</title>
 <style>
   *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
@@ -24,9 +23,7 @@
   html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow: hidden; position: fixed; width: 100%; }
   .main-container { height: 100vh; display: flex; flex-direction: column; }
   
-  /* Anchor the top section so it cannot slide */
   .sticky-top { position: relative; padding: 10px 15px 5px; background: var(--bg); z-index: 20; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-  
   .scroll-area { flex: 1; overflow-y: auto; padding: 10px 15px 450px; -webkit-overflow-scrolling: touch; }
 
   .flash-red { background-color: #660000 !important; }
@@ -87,10 +84,10 @@
       <div class="card-tight">
         <div id="msg"></div>
         <div id="interactive" class="viewport" style="display:none;"></div>
-        <button class="btn btn-cam" id="camBtn">▶ START SCANNER</button>
+        <button class="btn btn-cam" id="camBtn" onclick="toggleScanner()">▶ START SCANNER</button>
         <div style="display:flex; gap:6px;">
             <input type="tel" id="manualInput" placeholder="Enter 10-digit serial..." onfocus="syncManualBadge()" oninput="checkManualLength(this)" style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:10px; color:white;">
-            <button id="addBtn" class="btn" style="background:var(--accent); color:var(--bg); padding:0 12px; font-size: 12px;">ADD</button>
+            <button id="addBtn" class="btn" onclick="manualAdd()" style="background:var(--accent); color:var(--bg); padding:0 12px; font-size: 12px;">ADD</button>
         </div>
       </div>
     </div>
@@ -124,22 +121,6 @@ function handleScroll() {
     const jumpBtn = document.getElementById('jumpBtn');
     const scrollArea = document.getElementById('scrollArea');
     jumpBtn.style.display = scrollArea.scrollTop > 300 ? 'flex' : 'none';
-}
-
-function syncManualBadge() {
-    const idx = rows.findIndex(r => !r.serial);
-    if (idx !== -1) {
-        document.getElementById('lastZoneVal').innerText = rows[idx].zone || "---";
-        document.getElementById('lastSerialVal').innerText = "----------";
-    }
-}
-
-function checkManualLength(el) {
-    if (el.value.length > 10) {
-        triggerErrorVisual("⚠️ MAX 10 DIGITS");
-        playSound('error');
-        el.value = el.value.slice(0, 10);
-    }
 }
 
 function triggerErrorVisual(customMsg) {
@@ -192,17 +173,14 @@ function renderTable() {
 function handleZoneInput(idx, el) {
     const val = el.value;
     el.classList.remove('invalid-field', 'box-complete');
-
     if (val.length === 3 && rows.some((r, i) => r.zone === val && i !== idx)) {
         triggerErrorVisual("❌ DUPLICATE ZONE");
         playSound('error');
         el.classList.add('invalid-field');
         return;
     }
-
     rows[idx].zone = val;
     localStorage.setItem('scannerRows', JSON.stringify(rows));
-
     if (val.length === 3) {
         el.classList.add('box-complete');
         const nextIdx = idx + 1;
@@ -211,7 +189,6 @@ function handleZoneInput(idx, el) {
                 const nextInput = document.getElementById(`zone-${nextIdx}`);
                 const nextRow = document.getElementById(`row-${nextIdx}`);
                 const scrollArea = document.getElementById('scrollArea');
-                
                 if(nextInput) nextInput.focus();
                 if(nextRow && scrollArea) {
                     const scrollPos = nextRow.offsetTop - scrollArea.offsetTop - 55;
@@ -241,17 +218,42 @@ function clearRow(i) {
     rows[i].serial = '';
     rows[i].zone = '';
     renderTable();
+    localStorage.setItem('scannerRows', JSON.stringify(rows));
 }
 
 function updateUniqueCount() {
     document.getElementById('statFilled').innerText = rows.filter(r => r.serial.length === 10).length;
 }
 
-function clearAll() { 
-    if(confirm("Wipe everything?")){ 
-        rows=Array.from({length:TOTAL},()=>({zone:'',serial:''})); 
-        localStorage.clear(); renderTable(); 
+function toggleScanner() {
+    if (isScanning) {
+        Quagga.stop();
+        isScanning = false;
+        document.getElementById('interactive').style.display = 'none';
+        document.getElementById('camBtn').innerText = "▶ START SCANNER";
+    } else {
+        startScanner();
     }
+}
+
+async function startScanner() {
+    document.getElementById('interactive').style.display = 'block';
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(d => d.kind === 'videoinput');
+    const selectedId = videoDevices[videoDevices.length - 1].deviceId;
+    
+    Quagga.init({
+        inputStream: { name: "Live", type: "LiveStream", target: "#interactive", constraints: { deviceId: selectedId ? { exact: selectedId } : undefined, facingMode: "environment", width: 800, height: 800 }},
+        decoder: { readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader"] }
+    }, (err) => {
+        if (!err) {
+            Quagga.start(); 
+            isScanning = true;
+            document.getElementById('camBtn').innerText = "⏹ STOP SCANNER";
+            const track = Quagga.CameraAccess.getActiveTrack();
+            if (track && track.getCapabilities().zoom) track.applyConstraints({ advanced: [{ zoom: 2.5 }] });
+        }
+    });
 }
 
 function handleData(code) {
@@ -268,35 +270,24 @@ function handleData(code) {
         playSound('success');
         lastScannedTime = now; 
         renderTable();
-        // REMOVED auto-scroll-into-view here to prevent the camera from sliding up
+        localStorage.setItem('scannerRows', JSON.stringify(rows));
     }
 }
 
-async function startScanner() {
-    document.getElementById('interactive').style.display = 'block';
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoDevices = devices.filter(d => d.kind === 'videoinput');
-    const selectedId = videoDevices[videoDevices.length - 1].deviceId;
-    
-    Quagga.init({
-        inputStream: { name: "Live", type: "LiveStream", target: "#interactive", constraints: { deviceId: selectedId ? { exact: selectedId } : undefined, facingMode: "environment", width: 800, height: 800 }},
-        decoder: { readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader"] }
-    }, (err) => {
-        if (!err) {
-            Quagga.start(); isScanning = true;
-            document.getElementById('camBtn').innerText = "⏹ STOP SCANNER";
-            const track = Quagga.CameraAccess.getActiveTrack();
-            if (track && track.getCapabilities().zoom) track.applyConstraints({ advanced: [{ zoom: 2.5 }] });
-        }
-    });
+Quagga.onDetected((data) => handleData(data.codeResult.code));
+
+function manualAdd() {
+    const input = document.getElementById('manualInput');
+    handleData(input.value);
+    input.value = '';
 }
 
-Quagga.onDetected((data) => handleData(data.codeResult.code));
-document.getElementById('camBtn').addEventListener('click', () => isScanning ? location.reload() : startScanner());
-document.getElementById('addBtn').addEventListener('click', () => {
-    handleData(document.getElementById('manualInput').value);
-    document.getElementById('manualInput').value = '';
-});
+function clearAll() { 
+    if(confirm("Wipe everything?")){ 
+        rows=Array.from({length:TOTAL},()=>({zone:'',serial:''})); 
+        localStorage.clear(); renderTable(); 
+    }
+}
 
 document.getElementById('exportBtn').addEventListener('click', () => {
     const cs = document.getElementById('csInput').value;
