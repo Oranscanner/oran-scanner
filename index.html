@@ -21,11 +21,13 @@
     --camText: #00008b;
   }
   
-  html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow: hidden; }
+  html, body { height: 100%; background:var(--bg); color:var(--text); font-family:'SF Mono',monospace; overflow: hidden; position: fixed; width: 100%; }
   .main-container { height: 100vh; display: flex; flex-direction: column; }
   
-  .sticky-top { padding: 10px 15px 5px; background: var(--bg); z-index: 10; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-  .scroll-area { flex: 1; overflow-y: auto; padding: 10px 15px 300px; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+  .sticky-top { padding: 10px 15px 5px; background: var(--bg); z-index: 20; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  
+  /* Increased padding-bottom to 400px to ensure we can always scroll rows to the top */
+  .scroll-area { flex: 1; overflow-y: auto; padding: 10px 15px 400px; -webkit-overflow-scrolling: touch; }
 
   .flash-red { background-color: #660000 !important; }
   .wrap { max-width:680px; margin:0 auto; }
@@ -50,10 +52,10 @@
   
   .tbl-body { display:flex; flex-direction:column; gap:6px; margin-bottom: 20px; }
   .tbl-row { display:grid; grid-template-columns:30px 1fr 1.5fr 30px; gap:6px; align-items:center; padding:6px; border-radius:6px; background:rgba(255,255,255,0.03); }
-  .tbl-row input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:10px; color:white; font-size: 15px; width:100%; outline: none; transition: background 0.2s; }
+  .tbl-row input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:12px; color:white; font-size: 16px; width:100%; outline: none; -webkit-appearance: none; }
 
   .box-complete { background: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; font-weight: bold; }
-  .invalid-field { border: 2px solid var(--danger) !important; }
+  .invalid-field { border: 2px solid var(--danger) !important; background: #300 !important; }
   
   .btn { border-radius:8px; font-weight:600; cursor:pointer; border:none; display:flex; align-items:center; justify-content:center; }
   .btn-cam { padding:10px; width:100%; margin-bottom:8px; background:var(--camBg); color:var(--camText); border:1px solid var(--brandBlue); }
@@ -63,14 +65,14 @@
   .btn-export { background:var(--accent); color:var(--bg); padding:15px; flex:1.5; }
   .btn-copy { background:var(--surface); border:1px solid var(--border); color:white; flex:1; }
   
-  .jump-btn { position: fixed; bottom: 180px; right: 20px; width: 50px; height: 50px; background: var(--brandBlue); color: white; border-radius: 50%; display: none; z-index: 999; box-shadow: 0 4px 15px rgba(0,0,0,0.6); font-size: 24px; align-items:center; justify-content:center; border: 2px solid var(--bg); }
+  .jump-btn { position: fixed; bottom: 180px; right: 20px; width: 50px; height: 50px; background: var(--brandBlue); color: white; border-radius: 50%; display: none; z-index: 99; box-shadow: 0 4px 15px rgba(0,0,0,0.6); font-size: 24px; align-items:center; justify-content:center; border: 2px solid var(--bg); }
   #msg { text-align: center; font-size: 11px; color: var(--danger); font-weight: bold; height: 15px; margin-bottom: 5px; }
 </style>
 </head>
 <body id="mainBody">
 
 <div class="main-container">
-  <div class="sticky-top">
+  <div class="sticky-top" id="topSection">
     <div class="wrap">
       <h1>oranSCAN-711s</h1>
       <div class="cs-input-wrap"><span>#</span><input type="tel" id="csInput" maxlength="5" placeholder="CS#" oninput="saveCS()"></div>
@@ -100,7 +102,7 @@
     </div>
   </div>
 
-  <div class="actions-fixed">
+  <div class="actions-fixed" id="footerActions">
     <button class="btn btn-export" id="exportBtn">EXPORT EXCEL</button>
     <button class="btn btn-copy" id="copyBtn">Copy</button>
   </div>
@@ -180,7 +182,7 @@ function renderTable() {
             <input type="tel" id="ser-${i}" maxlength="10" 
               class="${r.serial.length === 10 ? 'box-complete' : ''}" 
               value="${r.serial}" oninput="handleSerialInput(${i}, this)">
-            <button onclick="clearRow(${i})" style="background:none; border:none; color:var(--danger); cursor:pointer;">×</button>
+            <button onclick="clearRow(${i})" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:20px;">×</button>
         `;
         tbody.appendChild(div);
     });
@@ -191,12 +193,11 @@ function handleZoneInput(idx, el) {
     const val = el.value;
     el.classList.remove('invalid-field', 'box-complete');
 
-    // Duplicate Check
     if (val.length === 3 && rows.some((r, i) => r.zone === val && i !== idx)) {
         triggerErrorVisual("❌ DUPLICATE ZONE");
         playSound('error');
         el.classList.add('invalid-field');
-        return; // Stop here, don't update rows array
+        return;
     }
 
     rows[idx].zone = val;
@@ -206,14 +207,19 @@ function handleZoneInput(idx, el) {
         el.classList.add('box-complete');
         const nextIdx = idx + 1;
         if(nextIdx < TOTAL) {
-            const nextInput = document.getElementById(`zone-${nextIdx}`);
-            const nextRow = document.getElementById(`row-${nextIdx}`);
-            const scrollArea = document.getElementById('scrollArea');
-            if(nextInput) nextInput.focus();
-            if(nextRow && scrollArea) {
-                const scrollPos = nextRow.offsetTop - scrollArea.offsetTop;
-                scrollArea.scrollTo({ top: scrollPos - 5, behavior: 'smooth' });
-            }
+            // Instant jump to avoid keyboard sync issues
+            setTimeout(() => {
+                const nextInput = document.getElementById(`zone-${nextIdx}`);
+                const nextRow = document.getElementById(`row-${nextIdx}`);
+                const scrollArea = document.getElementById('scrollArea');
+                
+                if(nextInput) nextInput.focus();
+                if(nextRow && scrollArea) {
+                    // Force the new row to the VERY TOP of the scroll area
+                    const scrollPos = nextRow.offsetTop - scrollArea.offsetTop;
+                    scrollArea.scrollTo({ top: scrollPos, behavior: 'auto' });
+                }
+            }, 10);
         }
     }
 }
@@ -237,6 +243,7 @@ function handleSerialInput(idx, el) {
 
 function clearRow(i) {
     rows[i].serial = '';
+    rows[i].zone = '';
     renderTable();
 }
 
@@ -265,6 +272,9 @@ function handleData(code) {
         playSound('success');
         lastScannedTime = now; 
         renderTable();
+        // Scroll the filled row into view
+        const targetRow = document.getElementById(`row-${idx}`);
+        if(targetRow) targetRow.scrollIntoView({behavior:'smooth', block:'center'});
     }
 }
 
