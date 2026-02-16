@@ -25,11 +25,11 @@
   .main-container { height: 100vh; display: flex; flex-direction: column; }
   
   .sticky-top { padding: 10px 15px 5px; background: var(--bg); z-index: 10; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-  .scroll-area { flex: 1; overflow-y: auto; padding: 10px 15px 250px; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+  .scroll-area { flex: 1; overflow-y: auto; padding: 10px 15px 300px; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
 
   .flash-red { background-color: #660000 !important; }
   .wrap { max-width:680px; margin:0 auto; }
-  h1 { font-size: 18px; text-align: center; margin-bottom: 5px; color: var(--brandBlue); font-weight: 800; letter-spacing: 1px; }
+  h1 { font-size: 18px; text-align: center; margin-bottom: 5px; color: var(--brandBlue); font-weight: 800; }
   
   .cs-input-wrap { display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
   .cs-input-wrap span { color: var(--yellow); font-weight: bold; font-size: 22px; margin-right: 5px; }
@@ -49,11 +49,11 @@
   #interactive video { width: 100%; height: 100%; object-fit: cover; }
   
   .tbl-body { display:flex; flex-direction:column; gap:6px; margin-bottom: 20px; }
-  .tbl-row { display:grid; grid-template-columns:30px 1fr 1.5fr 30px; gap:6px; align-items:center; padding:6px; border-radius:6px; background:rgba(255,255,255,0.03); border: 1px solid transparent; transition: all 0.2s; }
-  .tbl-row input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:10px; color:white; font-size: 15px; width:100%; outline: none; }
+  .tbl-row { display:grid; grid-template-columns:30px 1fr 1.5fr 30px; gap:6px; align-items:center; padding:6px; border-radius:6px; background:rgba(255,255,255,0.03); }
+  .tbl-row input { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:10px; color:white; font-size: 15px; width:100%; outline: none; transition: background 0.2s; }
 
   .box-complete { background: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; font-weight: bold; }
-  .invalid-field { border: 1px solid var(--danger) !important; color: var(--danger) !important; }
+  .invalid-field { border: 2px solid var(--danger) !important; }
   
   .btn { border-radius:8px; font-weight:600; cursor:pointer; border:none; display:flex; align-items:center; justify-content:center; }
   .btn-cam { padding:10px; width:100%; margin-bottom:8px; background:var(--camBg); color:var(--camText); border:1px solid var(--brandBlue); }
@@ -79,16 +79,13 @@
         <div class="badge-item"><div class="badge-label">Serial</div><div id="lastSerialVal" class="badge-val">----------</div></div>
       </div>
       <div class="top-stats">
-        <div class="stat-mini">
-            <span id="statFilled" class="stat-val">0</span>
-            <span class="stat-label">Units Scanned</span>
-        </div>
+        <div class="stat-mini"><span id="statFilled" class="stat-val">0</span><span class="stat-label">Units Scanned</span></div>
         <button class="btn btn-clear-mini" onclick="clearAll()">Clear All</button>
       </div>
       <div class="card-tight">
         <div id="msg"></div>
         <div id="interactive" class="viewport" style="display:none;"></div>
-        <button class="btn btn-cam" id="camBtn">▶ START CAMERA</button>
+        <button class="btn btn-cam" id="camBtn">▶ START SCANNER</button>
         <div style="display:flex; gap:6px;">
             <input type="tel" id="manualInput" placeholder="Enter 10-digit serial..." onfocus="syncManualBadge()" oninput="checkManualLength(this)" style="flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:10px; color:white;">
             <button id="addBtn" class="btn" style="background:var(--accent); color:var(--bg); padding:0 12px; font-size: 12px;">ADD</button>
@@ -168,6 +165,92 @@ function playSound(type) {
     } catch(e) {}
 }
 
+function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    rows.forEach((r, i) => {
+        const div = document.createElement('div');
+        div.className = 'tbl-row';
+        div.id = `row-${i}`;
+        div.innerHTML = `
+            <span style="font-size:9px; color:var(--muted)">${i+1}</span>
+            <input type="tel" id="zone-${i}" maxlength="3" 
+              class="${r.zone.length === 3 ? 'box-complete' : ''}" 
+              value="${r.zone}" oninput="handleZoneInput(${i}, this)">
+            <input type="tel" id="ser-${i}" maxlength="10" 
+              class="${r.serial.length === 10 ? 'box-complete' : ''}" 
+              value="${r.serial}" oninput="handleSerialInput(${i}, this)">
+            <button onclick="clearRow(${i})" style="background:none; border:none; color:var(--danger); cursor:pointer;">×</button>
+        `;
+        tbody.appendChild(div);
+    });
+    updateUniqueCount();
+}
+
+function handleZoneInput(idx, el) {
+    const val = el.value;
+    el.classList.remove('invalid-field', 'box-complete');
+
+    // Duplicate Check
+    if (val.length === 3 && rows.some((r, i) => r.zone === val && i !== idx)) {
+        triggerErrorVisual("❌ DUPLICATE ZONE");
+        playSound('error');
+        el.classList.add('invalid-field');
+        return; // Stop here, don't update rows array
+    }
+
+    rows[idx].zone = val;
+    localStorage.setItem('scannerRows', JSON.stringify(rows));
+
+    if (val.length === 3) {
+        el.classList.add('box-complete');
+        const nextIdx = idx + 1;
+        if(nextIdx < TOTAL) {
+            const nextInput = document.getElementById(`zone-${nextIdx}`);
+            const nextRow = document.getElementById(`row-${nextIdx}`);
+            const scrollArea = document.getElementById('scrollArea');
+            if(nextInput) nextInput.focus();
+            if(nextRow && scrollArea) {
+                const scrollPos = nextRow.offsetTop - scrollArea.offsetTop;
+                scrollArea.scrollTo({ top: scrollPos - 5, behavior: 'smooth' });
+            }
+        }
+    }
+}
+
+function handleSerialInput(idx, el) {
+    const val = el.value;
+    el.classList.remove('invalid-field', 'box-complete');
+
+    if (val.length === 10 && rows.some((r, i) => r.serial === val && i !== idx)) {
+        triggerErrorVisual("❌ DUPLICATE SERIAL");
+        playSound('error');
+        el.classList.add('invalid-field');
+        return;
+    }
+
+    rows[idx].serial = val;
+    localStorage.setItem('scannerRows', JSON.stringify(rows));
+    if (val.length === 10) el.classList.add('box-complete');
+    updateUniqueCount();
+}
+
+function clearRow(i) {
+    rows[i].serial = '';
+    renderTable();
+}
+
+function updateUniqueCount() {
+    document.getElementById('statFilled').innerText = rows.filter(r => r.serial.length === 10).length;
+}
+
+function clearAll() { 
+    if(confirm("Wipe everything?")){ 
+        rows=Array.from({length:TOTAL},()=>({zone:'',serial:''})); 
+        localStorage.clear(); renderTable(); 
+    }
+}
+
 function handleData(code) {
     const now = Date.now();
     if (now - lastScannedTime < 2000) return; 
@@ -197,118 +280,11 @@ async function startScanner() {
         if (!err) {
             Quagga.start(); isScanning = true;
             document.getElementById('camBtn').innerText = "⏹ STOP SCANNER";
-            const track = Quagga.CameraAccess.getActiveTrack();
-            if (track && track.getCapabilities().zoom) track.applyConstraints({ advanced: [{ zoom: 2.5 }] });
         }
     });
 }
 
 Quagga.onDetected((data) => handleData(data.codeResult.code));
-
-function renderTable() {
-    const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = '';
-    rows.forEach((r, i) => {
-        const div = document.createElement('div');
-        div.className = 'tbl-row';
-        div.id = `row-${i}`;
-        const isZoneDone = r.zone.length === 3;
-        const isSerDone = r.serial.length === 10;
-        
-        div.innerHTML = `
-            <span style="font-size:9px; color:var(--muted)">${i+1}</span>
-            <input type="tel" id="zone-${i}" maxlength="3" 
-              class="${isZoneDone ? 'box-complete' : ''}" 
-              value="${r.zone}" oninput="handleZoneInput(${i}, this.value)" onblur="finalCheckZone(${i}, this.value)">
-            <input type="tel" id="ser-${i}" maxlength="10" 
-              class="${isSerDone ? 'box-complete' : ''}" 
-              value="${r.serial}" oninput="handleSerialInput(${i}, this.value)" onblur="finalCheckSer(${i}, this.value)">
-            <button onclick="rows[${i}].serial=''; renderTable();" style="background:none; border:none; color:var(--danger); cursor:pointer;">×</button>
-        `;
-        tbody.appendChild(div);
-    });
-    updateUniqueCount();
-    localStorage.setItem('scannerRows', JSON.stringify(rows));
-}
-
-function updateUniqueCount() {
-    document.getElementById('statFilled').innerText = rows.filter(r => r.serial.length === 10).length;
-}
-
-function finalCheckZone(idx, val) {
-    if (val.length > 0 && val.length < 3) {
-        triggerErrorVisual("⚠️ ZONE REQUIRES 3 DIGITS");
-        playSound('error');
-    }
-    renderTable();
-}
-
-function finalCheckSer(idx, val) {
-    if (val.length > 0 && val.length < 10) {
-        triggerErrorVisual("⚠️ 10 DIGITS REQUIRED");
-        playSound('error');
-    }
-    renderTable();
-}
-
-function handleZoneInput(idx, val) {
-    // Duplicate Zone Check
-    if (val.length === 3 && rows.some((r, i) => r.zone === val && i !== idx)) {
-        triggerErrorVisual("❌ DUPLICATE ZONE");
-        playSound('error');
-        rows[idx].zone = ''; 
-        renderTable();
-        return;
-    }
-    
-    rows[idx].zone = val;
-    localStorage.setItem('scannerRows', JSON.stringify(rows));
-    
-    if (val.length === 3) {
-        renderTable();
-        const nextIdx = idx + 1;
-        if(nextIdx < TOTAL) {
-            setTimeout(() => {
-                const nextInput = document.getElementById(`zone-${nextIdx}`);
-                const nextRow = document.getElementById(`row-${nextIdx}`);
-                const scrollArea = document.getElementById('scrollArea');
-                
-                if(nextInput) nextInput.focus();
-                if(nextRow && scrollArea) {
-                    // Logic: Move the current/next box "UP" toward the top of the scroll container
-                    const topPos = nextRow.offsetTop - scrollArea.offsetTop;
-                    scrollArea.scrollTo({ top: topPos - 10, behavior: 'smooth' });
-                }
-            }, 50);
-        }
-    } else if (val.length === 0) {
-        renderTable();
-    }
-}
-
-function handleSerialInput(idx, val) {
-    // Duplicate Serial Check
-    if (val.length === 10 && rows.some((r, i) => r.serial === val && i !== idx)) {
-        triggerErrorVisual("❌ DUPLICATE SERIAL");
-        playSound('error');
-        rows[idx].serial = '';
-        renderTable();
-        return;
-    }
-
-    rows[idx].serial = val;
-    localStorage.setItem('scannerRows', JSON.stringify(rows));
-    if (val.length === 10 || val.length === 0) renderTable();
-    updateUniqueCount();
-}
-
-function clearAll() { 
-    if(confirm("Wipe everything?")){ 
-        rows=Array.from({length:TOTAL},()=>({zone:'',serial:''})); 
-        localStorage.clear(); renderTable(); 
-    }
-}
-
 document.getElementById('camBtn').addEventListener('click', () => isScanning ? location.reload() : startScanner());
 document.getElementById('addBtn').addEventListener('click', () => {
     handleData(document.getElementById('manualInput').value);
@@ -319,10 +295,6 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     const cs = document.getElementById('csInput').value;
     if (cs.length !== 5) return alert("5-digit CS required");
     const activeData = rows.filter(r => r.zone.trim().length > 0);
-    if (activeData.some(r => r.serial.length > 0 && r.serial.length !== 10)) { 
-        triggerErrorVisual("🛑 FIX RED SERIALS FIRST");
-        return; 
-    }
     const dataWithCS = [["System CS#:", cs], ["Zone", "Serial"], ...activeData.map(r => [r.zone, r.serial])];
     const ws = XLSX.utils.aoa_to_sheet(dataWithCS);
     const wb = XLSX.utils.book_new();
@@ -336,6 +308,7 @@ document.getElementById('copyBtn').addEventListener('click', () => {
     navigator.clipboard.writeText(`CS#: ${cs}\n${dataRows}`);
     alert("Copied!");
 });
+
 renderTable();
 </script>
 </body>
