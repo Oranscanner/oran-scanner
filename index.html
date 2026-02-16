@@ -25,9 +25,7 @@
   .main-container { height: 100vh; display: flex; flex-direction: column; }
   
   .sticky-top { padding: 10px 15px 5px; background: var(--bg); z-index: 20; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-  
-  /* Increased padding-bottom to 400px to ensure we can always scroll rows to the top */
-  .scroll-area { flex: 1; overflow-y: auto; padding: 10px 15px 400px; -webkit-overflow-scrolling: touch; }
+  .scroll-area { flex: 1; overflow-y: auto; padding: 10px 15px 450px; -webkit-overflow-scrolling: touch; }
 
   .flash-red { background-color: #660000 !important; }
   .wrap { max-width:680px; margin:0 auto; }
@@ -47,7 +45,7 @@
   .badge-val { font-size: 14px; font-weight: bold; }
   
   .card-tight { background:var(--surface); border-radius:10px; border:1px solid var(--border); padding:8px; margin-bottom:10px; }
-  #interactive.viewport { width: 100%; max-width: 240px; margin: 0 auto 8px; aspect-ratio: 1/1; border-radius:8px; overflow:hidden; border:1px solid var(--border); position:relative; background: #000; }
+  #interactive.viewport { width: 100%; max-width: 260px; margin: 0 auto 8px; aspect-ratio: 1/1; border-radius:8px; overflow:hidden; border:1px solid var(--border); position:relative; background: #000; }
   #interactive video { width: 100%; height: 100%; object-fit: cover; }
   
   .tbl-body { display:flex; flex-direction:column; gap:6px; margin-bottom: 20px; }
@@ -207,7 +205,6 @@ function handleZoneInput(idx, el) {
         el.classList.add('box-complete');
         const nextIdx = idx + 1;
         if(nextIdx < TOTAL) {
-            // Instant jump to avoid keyboard sync issues
             setTimeout(() => {
                 const nextInput = document.getElementById(`zone-${nextIdx}`);
                 const nextRow = document.getElementById(`row-${nextIdx}`);
@@ -215,9 +212,9 @@ function handleZoneInput(idx, el) {
                 
                 if(nextInput) nextInput.focus();
                 if(nextRow && scrollArea) {
-                    // Force the new row to the VERY TOP of the scroll area
-                    const scrollPos = nextRow.offsetTop - scrollArea.offsetTop;
-                    scrollArea.scrollTo({ top: scrollPos, behavior: 'auto' });
+                    // Offset by 50px so the PREVIOUS row stays visible
+                    const scrollPos = nextRow.offsetTop - scrollArea.offsetTop - 55;
+                    scrollArea.scrollTo({ top: Math.max(0, scrollPos), behavior: 'auto' });
                 }
             }, 10);
         }
@@ -272,7 +269,6 @@ function handleData(code) {
         playSound('success');
         lastScannedTime = now; 
         renderTable();
-        // Scroll the filled row into view
         const targetRow = document.getElementById(`row-${idx}`);
         if(targetRow) targetRow.scrollIntoView({behavior:'smooth', block:'center'});
     }
@@ -283,6 +279,8 @@ async function startScanner() {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoDevices = devices.filter(d => d.kind === 'videoinput');
     const selectedId = videoDevices[videoDevices.length - 1].deviceId;
+    
+    // REVERTED TO HIGH-PERFORMANCE SCANNER SETTINGS
     Quagga.init({
         inputStream: { name: "Live", type: "LiveStream", target: "#interactive", constraints: { deviceId: selectedId ? { exact: selectedId } : undefined, facingMode: "environment", width: 800, height: 800 }},
         decoder: { readers: ["code_128_reader", "ean_reader", "upc_reader", "code_39_reader"] }
@@ -290,6 +288,8 @@ async function startScanner() {
         if (!err) {
             Quagga.start(); isScanning = true;
             document.getElementById('camBtn').innerText = "⏹ STOP SCANNER";
+            const track = Quagga.CameraAccess.getActiveTrack();
+            if (track && track.getCapabilities().zoom) track.applyConstraints({ advanced: [{ zoom: 2.5 }] });
         }
     });
 }
