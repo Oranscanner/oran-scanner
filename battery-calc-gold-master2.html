@@ -21,6 +21,13 @@
         .res-title { font-size: 1.2em; color: #4caf50; font-weight: bold; text-align: center; margin-bottom: 8px; }
         .runtime-box { margin-top: 10px; padding: 12px; background: #0a192f; border-radius: 10px; border: 1px solid #1e40af; text-align: center; }
         .runtime-title { font-size: 1.1em; color: #60a5fa; font-weight: bold; margin-bottom: 4px; }
+        
+        /* NEW WIRE RUN BOX STYLES */
+        .wire-box { margin-top: 15px; padding: 15px; background: #1c1500; border-radius: 10px; border: 1px solid #ffb300; }
+        .wire-title { font-size: 1.1em; color: #ffca28; font-weight: bold; text-align: center; margin-bottom: 8px; text-transform: uppercase; }
+        #wire-details { font-size: 0.85em; color: #ffe082; line-height: 1.5; text-align: left; }
+        .alert-banner { display: none; margin-top: 10px; padding: 10px; background: #3e0000; border: 1px solid #ff3d00; border-radius: 8px; color: #ff8a80; font-weight: bold; font-size: 0.85em; text-align: center; }
+
         #details { font-size: 0.85em; color: #ccc; line-height: 1.5; text-align: left; }
         #runtime-details { font-size: 0.85em; color: #93c5fd; line-height: 1.4; }
         #fallback-box { display:none; position:fixed; top:10%; left:5%; width:80%; background:#222; border:2px solid #ff3d00; padding:20px; z-index:100; border-radius:10px; box-shadow: 0 0 20px #000; }
@@ -113,8 +120,21 @@
         </div>
     </div>
 
+    <!-- NEW WIRE RUN SETTINGS -->
+    <div class="section-title">Motion Loop Wire Settings (18 AWG)</div>
+    <div class="row">
+        <div><div class="name">Total Wire Run Distance</div><div class="specs">18 AWG Wire (Max 1000 Ft)</div></div>
+        <select id="wire_dist">
+            <option value="100">100 Ft</option>
+            <option value="250">250 Ft</option>
+            <option value="500">500 Ft</option>
+            <option value="750">750 Ft</option>
+            <option value="1000" selected>1000 Ft</option>
+        </select>
+    </div>
+
     <div class="btn-group">
-        <button class="calc-btn" onclick="calcAll()">CALCULATE BATTERY REQUIREMENT</button>
+        <button class="calc-btn" onclick="calcAll()">CALCULATE BATTERY & WIRE RUN</button>
         <button class="report-btn" onclick="copyReport()">COPY REPORT</button>
         <button class="report-btn" onclick="location.reload()">RESET ALL</button>
     </div>
@@ -127,6 +147,13 @@
     <div class="runtime-box">
         <div class="runtime-title">DMP Panel Cutoff Runtime (10.2V DC)</div>
         <div id="runtime-details">Calculates runtime duration before reaching panel cutoff.</div>
+    </div>
+
+    <!-- NEW SEPARATE WIRE RUN & VOLTAGE DROP CALCULATION BOX -->
+    <div class="wire-box">
+        <div class="wire-title">18 AWG Motion Run Voltage Drop</div>
+        <div id="wire-details">Calculates voltage drop along the wire run using selected motion detectors (2x 711S per motion @ 5% alarm blend).</div>
+        <div id="wire-alert" class="alert-banner"></div>
     </div>
 </div>
 
@@ -189,6 +216,88 @@
         } else {
             document.getElementById('runtime-details').innerHTML = `Select devices to calculate cutoff runtime.`;
         }
+
+        // --- NEW WIRE DISTANCE & VOLTAGE DROP CALCULATION ---
+        calcWireRun(ds939 + isc);
+    }
+
+    function calcWireRun(motionCount) {
+        let maxDist = parseFloat(document.getElementById("wire_dist").value) || 1000;
+        let startVolts = 13.6;
+        let alertBox = document.getElementById("wire-alert");
+        alertBox.style.display = "none";
+
+        if (motionCount === 0) {
+            document.getElementById("wire-details").innerHTML = "Select DS939 or ISC motion detectors to calculate wire run voltage drop.";
+            return;
+        }
+
+        // Each motion node = 1x Motion + 2x 711S + 2x Zones
+        // Standby = 12mA (avg) + (2 * 4.2mA) + (2 * 1.6mA) = 23.6 mA
+        // Alarm   = 27mA (avg) + (2 * 4.7mA) + (2 * 2.0mA) = 40.4 mA
+        // 5% Alarm Blend = (0.95 * 23.6) + (0.05 * 52.4) = 25.04 mA per motion node
+        const nodeCurrentA = 0.02504;
+        const totalLoopCurrentmA = motionCount * nodeCurrentA * 1000;
+
+        // 18 AWG Resistance (standard loop resistance = ~0.00651 ohms/ft)
+        const ohmPerFt = 0.00651;
+
+        // Evenly spaced detectors along wire run
+        const spacingFt = maxDist / motionCount;
+        let currentVolts = startVolts;
+        let totalDrop = 0;
+        let cutoffDetector = 0;
+        let cutoffFeet = 0;
+
+        for (let i = 1; i <= motionCount; i++) {
+            // Current flowing through this segment = remaining detectors * nodeCurrentA
+            let segmentCurrent = (motionCount - i + 1) * nodeCurrentA;
+            let segmentDrop = segmentCurrent * (spacingFt * ohmPerFt);
+            totalDrop += segmentDrop;
+            currentVolts = startVolts - totalDrop;
+
+            if (currentVolts <= 12.0 && cutoffDetector === 0) {
+                cutoffDetector = i;
+                cutoffFeet = Math.round(i * spacingFt);
+            }
+        }
+
+        let endVolts = Math.max(0, startVolts - totalDrop);
+        let requiresAuxPower = (endVolts <= 12.0) || (totalDrop >= 1.6) || (totalLoopCurrentmA >= 999);
+
+        let wireReport = `
+            <strong>Starting Bus Voltage:</strong> 13.6 VDC<br>
+            <strong>Motion Count on Run:</strong> ${motionCount} (2x 711S per detector)<br>
+            <strong>Loop Current Draw (5% Alarm):</strong> ${totalLoopCurrentmA.toFixed(1)} mA<br>
+            <strong>End-of-Run Voltage (${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#ffca28'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Drop: ${totalDrop.toFixed(2)} V)<br>
+        `;
+
+        if (cutoffDetector > 0) {
+            wireReport += `
+                <hr style="border: 0; border-top: 1px solid #ffb300; margin: 8px 0;">
+                <span style="color:#ff5252; font-weight:bold;">12.0V Cutoff Threshold Reached At:</span><br>
+                • Detector #${cutoffDetector} @ approximately <strong>${cutoffFeet} Feet</strong><br>
+                • <strong style="color:#ff8a80;">AN AUXILIARY POWER SUPPLY IS REQUIRED AT/BEFORE THIS POINT.</strong>
+            `;
+        } else {
+            wireReport += `<br><span style="color:#4caf50; font-weight:bold;">✓ Voltage remains above 12.0 VDC threshold across entire ${maxDist} ft run.</span>`;
+        }
+
+        document.getElementById("wire-details").innerHTML = wireReport;
+
+        // Pop-up alert and visual banner trigger
+        if (requiresAuxPower) {
+            let reason = [];
+            if (endVolts <= 12.0 || totalDrop >= 1.6) reason.push(`Voltage drop exceeds 1.6V (End voltage: ${endVolts.toFixed(2)}V DC)`);
+            if (totalLoopCurrentmA >= 999) reason.push(`Loop current draw reaches/exceeds 999 mA (${totalLoopCurrentmA.toFixed(1)} mA)`);
+
+            alertBox.style.display = "block";
+            alertBox.innerHTML = `⚠️ AUXILIARY POWER SUPPLY REQUIRED<br><span style="font-size:0.8em; font-weight:normal;">${reason.join(' | ')}</span>`;
+
+            setTimeout(() => {
+                alert(`⚠️ AUXILIARY POWER SUPPLY REQUIRED!\n\nReason:\n- ${reason.join('\n- ')}\n\nAdd an auxiliary power supply at or before Detector #${cutoffDetector || motionCount} (${cutoffFeet || maxDist} ft).`);
+            }, 100);
+        }
     }
 
     function copyReport() {
@@ -204,7 +313,8 @@
             }
         });
         r += `--------------------\n${document.getElementById('details').innerText.replace(/<[^>]*>/g, '')}\n`;
-        r += `--------------------\n${document.getElementById('runtime-details').innerText.replace(/<[^>]*>/g, '')}`;
+        r += `--------------------\n${document.getElementById('runtime-details').innerText.replace(/<[^>]*>/g, '')}\n`;
+        r += `--------------------\nWIRE RUN VOLTAGE DROP:\n${document.getElementById('wire-details').innerText.replace(/<[^>]*>/g, '')}`;
         
         navigator.clipboard.writeText(r).then(() => {
             alert("Report copied to clipboard!");
