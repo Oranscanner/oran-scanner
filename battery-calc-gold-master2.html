@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oran-Ah & Vd Drop-Calc</title>
+    <title>oran-Ah & Vd drop-calc</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; color: #fff; padding: 10px; margin: 0; }
         .card { background: #1a1a1b; padding: 15px; border-radius: 12px; max-width: 520px; margin: auto; border: 1px solid #333; }
@@ -47,7 +47,7 @@
 </div>
 
 <div class="card">
-    <h2 class="app-title">Oran-Ah & Vd Drop-Calc</h2>
+    <h2 class="app-title">oran-Ah & Vd drop-calc</h2>
     <div class="sub">Oran Medina 2026 — Gold Master v2</div>
 
     <div class="section-title">Battery Configuration</div>
@@ -198,8 +198,8 @@
     }
 
     function resetAll() {
-        document.getElementById("panel").value = "1";
-        document.getElementById("wire_dist").value = "600";
+        document.getElementById("panel").value = "0";
+        document.getElementById("wire_dist").value = "100";
         document.getElementById("bat_rating").selectedIndex = 0;
         
         const ids = ["keypad", "mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
@@ -293,6 +293,9 @@
             return;
         }
 
+        // Per-Detector Calculation (Standby + 5% Alarm Addition):
+        // DS939: 12mA standby + (5% * 39mA alarm) = 13.95mA per unit
+        // ISC-PPR1-W16: 10mA standby + (5% * 15mA alarm) = 10.75mA per unit
         let ds939EffectiveDraw = 0.012 + (0.05 * 0.039); 
         let iscEffectiveDraw = 0.010 + (0.05 * 0.015);   
         let mod711Draw = 0.0042;
@@ -304,6 +307,7 @@
         let perNodeCurrentA = totalCurrentA / totalMotions;
         let totalLoopCurrentmA = totalCurrentA * 1000;
         
+        // 18 AWG resistance per foot (one-way). Round trip uses 2x multiplier (0.01302 ohm/ft loop).
         const ohmPerFtOneWay = 0.00651;
         const ohmPerFtLoop = ohmPerFtOneWay * 2; 
 
