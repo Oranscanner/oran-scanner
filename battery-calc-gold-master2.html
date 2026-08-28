@@ -13,7 +13,13 @@
         .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #2a2a2b; }
         .name { font-weight: 600; font-size: 0.9em; color: #efefef; }
         .specs { font-size: 0.7em; color: #666; }
-        select { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 85px; font-size: 0.95em; text-align: center; }
+        select, input[type="number"] { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 85px; font-size: 0.95em; text-align: center; }
+        
+        /* LIVE ZONE COUNT BAR STYLING */
+        .zone-counter-bar { background: #112211; border: 1px solid #2e7d32; padding: 10px; border-radius: 8px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+        .zone-counter-title { font-weight: bold; font-size: 0.9em; color: #81c784; text-transform: uppercase; }
+        .zone-counter-val { font-weight: bold; font-size: 1.1em; color: #4caf50; background: #000; padding: 4px 12px; border-radius: 5px; border: 1px solid #2e7d32; }
+
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .calc-btn { grid-column: span 2; padding: 14px; background: #ff3d00; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; text-transform: uppercase; }
         .report-btn { padding: 10px; background: #444; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85em; }
@@ -22,7 +28,6 @@
         .runtime-box { margin-top: 10px; padding: 12px; background: #0a192f; border-radius: 10px; border: 1px solid #1e40af; text-align: center; }
         .runtime-title { font-size: 1.1em; color: #60a5fa; font-weight: bold; margin-bottom: 4px; }
         
-        /* NEW WIRE RUN BOX STYLES */
         .wire-box { margin-top: 15px; padding: 15px; background: #1c1500; border-radius: 10px; border: 1px solid #ffb300; }
         .wire-title { font-size: 1.1em; color: #ffca28; font-weight: bold; text-align: center; margin-bottom: 8px; text-transform: uppercase; }
         #wire-details { font-size: 0.85em; color: #ffe082; line-height: 1.5; text-align: left; }
@@ -59,78 +64,77 @@
     <div class="section-title">System Devices & Standby Load</div>
     <div id="list-container">
         <div class="row">
-            <div><div class="name">XR550DEA-G Panel</div><div class="specs">Local Power (0mA Bus Draw)</div></div>
-            <select id="panel"><option value="0">0</option><option value="1">1</option></select>
+            <div><div class="name">XR550DEA-G Panel</div><div class="specs">174mA Standby / 217mA Alarm</div></div>
+            <select id="panel" onchange="updateLiveZones()"><option value="0">0</option><option value="1" selected>1</option></select>
         </div>
         <div class="row">
             <div><div class="name">7060AN-W Keypad</div><div class="specs">72mA Standby / 87mA Alarm</div></div>
-            <select id="keypad"></select>
+            <select id="keypad" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">HSS-L2S-000 Contact SINGLE</div><div class="specs">0mA (+2 Zones)</div></div>
-            <select id="mag_single"></select>
+            <select id="mag_single" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">HSS-L2S-000 Contact DOUBLE</div><div class="specs">0mA (+2 Zones)</div></div>
-            <select id="mag_double"></select>
+            <select id="mag_double" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">DS939 360° PIR</div><div class="specs">12mA Standby (+2 Zones)</div></div>
-            <select id="ds939"></select>
+            <select id="ds939" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">ISC-PPR1-W16 PIR</div><div class="specs">10mA Standby (+2 Zones)</div></div>
-            <select id="isc"></select>
+            <select id="isc" onchange="updateLiveZones()"></select>
         </div>
+
+        <div class="zone-counter-bar">
+            <div class="zone-counter-title">Live Total Active Zone Count</div>
+            <div class="zone-counter-val" id="live-zone-display">0 Zones</div>
+        </div>
+
         <div class="row">
             <div><div class="name">711S 1-Zone Mod</div><div class="specs">4.2mA Standby</div></div>
-            <select id="711s"></select>
+            <select id="711s" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">714 4-Zone Mod</div><div class="specs">7mA Standby</div></div>
-            <select id="714"></select>
+            <select id="714" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">714-8 8-Zone Mod</div><div class="specs">20mA Standby</div></div>
-            <select id="714_8"></select>
+            <select id="714_8" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">714-16 16-Zone Mod</div><div class="specs">20mA Standby</div></div>
-            <select id="714_16"></select>
+            <select id="714_16" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">712-8 8-Zone Card</div><div class="specs">17mA Standby</div></div>
-            <select id="712"></select>
+            <select id="712" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">716 Output Mod</div><div class="specs">7mA Standby</div></div>
-            <select id="output"></select>
+            <select id="output" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">P2WL-P Horn/Strobe</div><div class="specs">0mA Standby</div></div>
-            <select id="horn"></select>
+            <select id="horn" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">710 Bus Splitter</div><div class="specs">30mA Standby</div></div>
-            <select id="splitter"></select>
+            <select id="splitter" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
             <div><div class="name">1100XH Wireless Rec</div><div class="specs">75mA Standby</div></div>
-            <select id="wifi"></select>
+            <select id="wifi" onchange="updateLiveZones()"></select>
         </div>
     </div>
 
-    <!-- NEW WIRE RUN SETTINGS -->
     <div class="section-title">Motion Loop Wire Settings (18 AWG)</div>
     <div class="row">
-        <div><div class="name">Total Wire Run Distance</div><div class="specs">18 AWG Wire (Max 1000 Ft)</div></div>
-        <select id="wire_dist">
-            <option value="100">100 Ft</option>
-            <option value="250">250 Ft</option>
-            <option value="500">500 Ft</option>
-            <option value="750">750 Ft</option>
-            <option value="1000" selected>1000 Ft</option>
-        </select>
+        <div><div class="name">Total Wire Run Distance</div><div class="specs">Input feet (18 AWG, 100' Steps, Max 1000')</div></div>
+        <input type="number" id="wire_dist" value="1000" min="100" max="1000" step="100">
     </div>
 
     <div class="btn-group">
@@ -149,7 +153,6 @@
         <div id="runtime-details">Calculates runtime duration before reaching panel cutoff.</div>
     </div>
 
-    <!-- NEW SEPARATE WIRE RUN & VOLTAGE DROP CALCULATION BOX -->
     <div class="wire-box">
         <div class="wire-title">18 AWG Motion Run Voltage Drop</div>
         <div id="wire-details">Calculates voltage drop along the wire run using selected motion detectors (2x 711S per motion @ 5% alarm blend).</div>
@@ -166,8 +169,21 @@
     fill("714", 10); fill("714_8", 10); fill("714_16", 10); fill("712", 10); fill("output", 10);
     fill("horn", 10); fill("splitter", 10); fill("wifi", 10);
 
+    function updateLiveZones() {
+        let magSingle = parseInt(document.getElementById("mag_single").value) || 0;
+        let magDouble = parseInt(document.getElementById("mag_double").value) || 0;
+        let ds939 = parseInt(document.getElementById("ds939").value) || 0;
+        let isc = parseInt(document.getElementById("isc").value) || 0;
+
+        let totalZones = (magSingle * 2) + (magDouble * 2) + (ds939 * 2) + (isc * 2);
+        document.getElementById("live-zone-display").innerText = `${totalZones} Zones`;
+        return totalZones;
+    }
+
     function calcAll() {
-        let loadmA = 0;
+        let panelQty = parseInt(document.getElementById("panel").value) || 0;
+        let loadmA = panelQty * 174;
+
         const ids = ["keypad", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
         const draws = [72, 12, 10, 4.2, 7, 20, 20, 17, 7, 0, 30, 75];
         
@@ -176,12 +192,7 @@
             loadmA += q * draws[i];
         });
 
-        let magSingle = parseInt(document.getElementById("mag_single").value) || 0;
-        let magDouble = parseInt(document.getElementById("mag_double").value) || 0;
-        let ds939 = parseInt(document.getElementById("ds939").value) || 0;
-        let isc = parseInt(document.getElementById("isc").value) || 0;
-
-        let totalZones = (magSingle * 2) + (magDouble * 2) + (ds939 * 2) + (isc * 2);
+        let totalZones = updateLiveZones();
         loadmA += (totalZones * 1.6);
 
         let ah24 = ((loadmA / 1000) * 24 * 1.2);
@@ -195,134 +206,4 @@
             <hr style="border: 0; border-top: 1px solid #333; margin: 8px 0;">
             <strong>24-Hour Battery Requirement (${selectedAh} Ah Rating):</strong><br>
             • Required Capacity (w/ 20% Safety Factor): <strong>${ah24.toFixed(2)} Ah</strong><br>
-            • <span style="color:#4caf50; font-weight:bold; font-size:1.1em;">BATTERY COUNT NEEDED: ${bats24} x (${selectedAh} Ah)</span>
-        `;
-
-        document.getElementById('res-val').innerText = `${bats24} x ${selectedAh}Ah BATTERIES REQUIRED`;
-        document.getElementById('details').innerHTML = out;
-
-        // --- RUNTIME TO 10.2V CUTOFF CALCULATION ---
-        if (loadmA > 0) {
-            let totalAvailableAh = bats24 * selectedAh;
-            let runtimeHours = (totalAvailableAh / (loadmA / 1000));
-            let hrs = Math.floor(runtimeHours);
-            let mins = Math.round((runtimeHours - hrs) * 60);
-
-            document.getElementById('runtime-details').innerHTML = `
-                Estimated Standby Duration (to 10.2V DC Cutoff):<br>
-                <strong style="font-size: 1.2em; color: #93c5fd;">${hrs} Hours, ${mins} Minutes</strong><br>
-                <span style="font-size: 0.8em; color: #60a5fa;">(Based on ${bats24} x ${selectedAh} Ah batteries @ ${loadmA.toFixed(1)} mA continuous load)</span>
-            `;
-        } else {
-            document.getElementById('runtime-details').innerHTML = `Select devices to calculate cutoff runtime.`;
-        }
-
-        // --- NEW WIRE DISTANCE & VOLTAGE DROP CALCULATION ---
-        calcWireRun(ds939 + isc);
-    }
-
-    function calcWireRun(motionCount) {
-        let maxDist = parseFloat(document.getElementById("wire_dist").value) || 1000;
-        let startVolts = 13.6;
-        let alertBox = document.getElementById("wire-alert");
-        alertBox.style.display = "none";
-
-        if (motionCount === 0) {
-            document.getElementById("wire-details").innerHTML = "Select DS939 or ISC motion detectors to calculate wire run voltage drop.";
-            return;
-        }
-
-        // Each motion node = 1x Motion + 2x 711S + 2x Zones
-        // Standby = 12mA (avg) + (2 * 4.2mA) + (2 * 1.6mA) = 23.6 mA
-        // Alarm   = 27mA (avg) + (2 * 4.7mA) + (2 * 2.0mA) = 40.4 mA
-        // 5% Alarm Blend = (0.95 * 23.6) + (0.05 * 52.4) = 25.04 mA per motion node
-        const nodeCurrentA = 0.02504;
-        const totalLoopCurrentmA = motionCount * nodeCurrentA * 1000;
-
-        // 18 AWG Resistance (standard loop resistance = ~0.00651 ohms/ft)
-        const ohmPerFt = 0.00651;
-
-        // Evenly spaced detectors along wire run
-        const spacingFt = maxDist / motionCount;
-        let currentVolts = startVolts;
-        let totalDrop = 0;
-        let cutoffDetector = 0;
-        let cutoffFeet = 0;
-
-        for (let i = 1; i <= motionCount; i++) {
-            // Current flowing through this segment = remaining detectors * nodeCurrentA
-            let segmentCurrent = (motionCount - i + 1) * nodeCurrentA;
-            let segmentDrop = segmentCurrent * (spacingFt * ohmPerFt);
-            totalDrop += segmentDrop;
-            currentVolts = startVolts - totalDrop;
-
-            if (currentVolts <= 12.0 && cutoffDetector === 0) {
-                cutoffDetector = i;
-                cutoffFeet = Math.round(i * spacingFt);
-            }
-        }
-
-        let endVolts = Math.max(0, startVolts - totalDrop);
-        let requiresAuxPower = (endVolts <= 12.0) || (totalDrop >= 1.6) || (totalLoopCurrentmA >= 999);
-
-        let wireReport = `
-            <strong>Starting Bus Voltage:</strong> 13.6 VDC<br>
-            <strong>Motion Count on Run:</strong> ${motionCount} (2x 711S per detector)<br>
-            <strong>Loop Current Draw (5% Alarm):</strong> ${totalLoopCurrentmA.toFixed(1)} mA<br>
-            <strong>End-of-Run Voltage (${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#ffca28'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Drop: ${totalDrop.toFixed(2)} V)<br>
-        `;
-
-        if (cutoffDetector > 0) {
-            wireReport += `
-                <hr style="border: 0; border-top: 1px solid #ffb300; margin: 8px 0;">
-                <span style="color:#ff5252; font-weight:bold;">12.0V Cutoff Threshold Reached At:</span><br>
-                • Detector #${cutoffDetector} @ approximately <strong>${cutoffFeet} Feet</strong><br>
-                • <strong style="color:#ff8a80;">AN AUXILIARY POWER SUPPLY IS REQUIRED AT/BEFORE THIS POINT.</strong>
-            `;
-        } else {
-            wireReport += `<br><span style="color:#4caf50; font-weight:bold;">✓ Voltage remains above 12.0 VDC threshold across entire ${maxDist} ft run.</span>`;
-        }
-
-        document.getElementById("wire-details").innerHTML = wireReport;
-
-        // Pop-up alert and visual banner trigger
-        if (requiresAuxPower) {
-            let reason = [];
-            if (endVolts <= 12.0 || totalDrop >= 1.6) reason.push(`Voltage drop exceeds 1.6V (End voltage: ${endVolts.toFixed(2)}V DC)`);
-            if (totalLoopCurrentmA >= 999) reason.push(`Loop current draw reaches/exceeds 999 mA (${totalLoopCurrentmA.toFixed(1)} mA)`);
-
-            alertBox.style.display = "block";
-            alertBox.innerHTML = `⚠️ AUXILIARY POWER SUPPLY REQUIRED<br><span style="font-size:0.8em; font-weight:normal;">${reason.join(' | ')}</span>`;
-
-            setTimeout(() => {
-                alert(`⚠️ AUXILIARY POWER SUPPLY REQUIRED!\n\nReason:\n- ${reason.join('\n- ')}\n\nAdd an auxiliary power supply at or before Detector #${cutoffDetector || motionCount} (${cutoffFeet || maxDist} ft).`);
-            }, 100);
-        }
-    }
-
-    function copyReport() {
-        let r = "ORAN'S BATTERY CALCULATOR REPORT\n--------------------\n";
-        let selectedAh = document.getElementById("bat_rating").value;
-        r += `Selected Battery Rating: ${selectedAh} Ah\n--------------------\n`;
-        const ids = ["panel", "keypad", "mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
-        ids.forEach(id => {
-            let q = document.getElementById(id).value;
-            if(q > 0) {
-                let name = document.getElementById(id).closest('.row').querySelector('.name').innerText;
-                r += `${name}: ${q}\n`;
-            }
-        });
-        r += `--------------------\n${document.getElementById('details').innerText.replace(/<[^>]*>/g, '')}\n`;
-        r += `--------------------\n${document.getElementById('runtime-details').innerText.replace(/<[^>]*>/g, '')}\n`;
-        r += `--------------------\nWIRE RUN VOLTAGE DROP:\n${document.getElementById('wire-details').innerText.replace(/<[^>]*>/g, '')}`;
-        
-        navigator.clipboard.writeText(r).then(() => {
-            alert("Report copied to clipboard!");
-        }).catch(() => {
-            document.getElementById('fallback-text').value = r;
-            document.getElementById('fallback-box').style.display = 'block';
-        });
-    }
-</script>
-</body>
-</html>
+            • <span style="color:#4caf50; font-
