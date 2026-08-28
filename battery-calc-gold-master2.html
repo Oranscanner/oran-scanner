@@ -19,7 +19,10 @@
         .report-btn { padding: 10px; background: #444; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85em; }
         .res-box { margin-top: 15px; padding: 15px; background: #0f1c10; border-radius: 10px; border: 1px solid #2e7d32; }
         .res-title { font-size: 1.2em; color: #4caf50; font-weight: bold; text-align: center; margin-bottom: 8px; }
+        .runtime-box { margin-top: 10px; padding: 12px; background: #0a192f; border-radius: 10px; border: 1px solid #1e40af; text-align: center; }
+        .runtime-title { font-size: 1.1em; color: #60a5fa; font-weight: bold; margin-bottom: 4px; }
         #details { font-size: 0.85em; color: #ccc; line-height: 1.5; text-align: left; }
+        #runtime-details { font-size: 0.85em; color: #93c5fd; line-height: 1.4; }
         #fallback-box { display:none; position:fixed; top:10%; left:5%; width:80%; background:#222; border:2px solid #ff3d00; padding:20px; z-index:100; border-radius:10px; box-shadow: 0 0 20px #000; }
         #fallback-text { width:100%; height:150px; background:#000; color:#fff; border:1px solid #444; margin-bottom:10px; font-family:monospace; }
     </style>
@@ -50,7 +53,7 @@
     <div id="list-container">
         <div class="row">
             <div><div class="name">XR550DEA-G Panel</div><div class="specs">Local Power (0mA Bus Draw)</div></div>
-            <select id="panel"><option value="1">1</option></select>
+            <select id="panel"><option value="0">0</option><option value="1">1</option></select>
         </div>
         <div class="row">
             <div><div class="name">7060AN-W Keypad</div><div class="specs">72mA Standby / 87mA Alarm</div></div>
@@ -120,6 +123,11 @@
         <div class="res-title" id="res-val">System Ready</div>
         <div id="details">Select parameters above and tap Calculate.</div>
     </div>
+
+    <div class="runtime-box">
+        <div class="runtime-title">DMP Panel Cutoff Runtime (10.2V DC)</div>
+        <div id="runtime-details">Calculates runtime duration before reaching panel cutoff.</div>
+    </div>
 </div>
 
 <script>
@@ -165,13 +173,29 @@
 
         document.getElementById('res-val').innerText = `${bats24} x ${selectedAh}Ah BATTERIES REQUIRED`;
         document.getElementById('details').innerHTML = out;
+
+        // --- RUNTIME TO 10.2V CUTOFF CALCULATION ---
+        if (loadmA > 0) {
+            let totalAvailableAh = bats24 * selectedAh;
+            let runtimeHours = (totalAvailableAh / (loadmA / 1000));
+            let hrs = Math.floor(runtimeHours);
+            let mins = Math.round((runtimeHours - hrs) * 60);
+
+            document.getElementById('runtime-details').innerHTML = `
+                Estimated Standby Duration (to 10.2V DC Cutoff):<br>
+                <strong style="font-size: 1.2em; color: #93c5fd;">${hrs} Hours, ${mins} Minutes</strong><br>
+                <span style="font-size: 0.8em; color: #60a5fa;">(Based on ${bats24} x ${selectedAh} Ah batteries @ ${loadmA.toFixed(1)} mA continuous load)</span>
+            `;
+        } else {
+            document.getElementById('runtime-details').innerHTML = `Select devices to calculate cutoff runtime.`;
+        }
     }
 
     function copyReport() {
         let r = "ORAN'S BATTERY CALCULATOR REPORT\n--------------------\n";
         let selectedAh = document.getElementById("bat_rating").value;
         r += `Selected Battery Rating: ${selectedAh} Ah\n--------------------\n`;
-        const ids = ["keypad", "mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
+        const ids = ["panel", "keypad", "mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
         ids.forEach(id => {
             let q = document.getElementById(id).value;
             if(q > 0) {
@@ -179,7 +203,8 @@
                 r += `${name}: ${q}\n`;
             }
         });
-        r += `--------------------\n${document.getElementById('details').innerText.replace(/<[^>]*>/g, '')}`;
+        r += `--------------------\n${document.getElementById('details').innerText.replace(/<[^>]*>/g, '')}\n`;
+        r += `--------------------\n${document.getElementById('runtime-details').innerText.replace(/<[^>]*>/g, '')}`;
         
         navigator.clipboard.writeText(r).then(() => {
             alert("Report copied to clipboard!");
