@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oran's Battery Calc</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; background: #000; color: #fff; padding: 10px; margin: 0; }
+        .card { background: #1a1a1b; padding: 15px; border-radius: 12px; max-width: 500px; margin: auto; border: 1px solid #333; }
+        h2 { color: #ff3d00; text-align: center; margin: 0; font-size: 1.3em; text-transform: uppercase; }
+        .sub { text-align: center; font-size: 0.75em; color: #888; margin-bottom: 15px; }
+        .row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #2a2a2b; }
+        .name { font-weight: 600; font-size: 0.9em; color: #efefef; }
+        .specs { font-size: 0.7em; color: #666; }
+        select { background: #333; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 5px; width: 70px; font-size: 1em; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .calc-btn { grid-column: span 2; padding: 15px; background: #ff3d00; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1.1em; cursor: pointer; }
+        .report-btn { padding: 10px; background: #444; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9em; }
+        .res-box { margin-top: 15px; padding: 15px; background: #0f1c10; border-radius: 10px; text-align: center; border: 1px solid #2e7d32; }
+        #res-val { font-size: 1.6em; color: #4caf50; font-weight: bold; }
+        #details { font-size: 0.8em; color: #aaa; margin-top: 5px; line-height: 1.3; }
+        #fallback-box { display:none; position:fixed; top:10%; left:5%; width:80%; background:#222; border:2px solid #ff3d00; padding:20px; z-index:100; border-radius:10px; box-shadow: 0 0 20px #000; }
+        #fallback-text { width:100%; height:150px; background:#000; color:#fff; border:1px solid #444; margin-bottom:10px; font-family:monospace; }
+    </style>
+</head>
+<body>
+
+<div id="fallback-box">
+    <div style="font-weight:bold; color:#ff3d00; margin-bottom:10px;">Copy Manually Below:</div>
+    <textarea id="fallback-text" readonly></textarea>
+    <button class="report-btn" style="width:100%" onclick="document.getElementById('fallback-box').style.display='none'">CLOSE</button>
+</div>
+
+<div class="card">
+    <h2>ORAN'S BATTERY CALC</h2>
+    <div class="sub">Oran Medina 2026</div>
+    
+    <div id="list-container">
+        <div class="row">
+            <div><div class="name">XR550DEA-G Panel</div><div class="specs">174mA / 217mA</div></div>
+            <select id="panel"><option value="0">0</option><option value="1">1</option></select>
+        </div>
+        <div class="row">
+            <div><div class="name">7060AN-W Keypad</div><div class="specs">72mA / 80mA</div></div>
+            <select id="keypad"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">HSS-L2S-000 Contact SINGLE</div><div class="specs">0mA / 0mA (+2 Zones)</div></div>
+            <select id="mag_single"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">HSS-L2S-000 Contact DOUBLE</div><div class="specs">0mA / 0mA (+2 Zones)</div></div>
+            <select id="mag_double"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">DS939 360° PIR</div><div class="specs">12mA / 39mA (+2 Zones)</div></div>
+            <select id="ds939"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">ISC-PPR1-W16 PIR</div><div class="specs">10mA / 15mA (+2 Zones)</div></div>
+            <select id="isc"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">711S 1-Zone Mod</div><div class="specs">4.2mA / 4.7mA</div></div>
+            <select id="711s"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">714 4-Zone Mod</div><div class="specs">7mA / 7mA</div></div>
+            <select id="714"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">714-8 8-Zone Mod</div><div class="specs">20mA / 20mA</div></div>
+            <select id="714_8"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">714-16 16-Zone Mod</div><div class="specs">20mA / 20mA</div></div>
+            <select id="714_16"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">712-8 8-Zone Card</div><div class="specs">17mA / 17mA</div></div>
+            <select id="712"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">716 Output Mod</div><div class="specs">7mA / 119mA</div></div>
+            <select id="output"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">P2WL-P Horn/Strobe</div><div class="specs">0mA / 75mA</div></div>
+            <select id="horn"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">710 Bus Splitter</div><div class="specs">30mA / 30mA</div></div>
+            <select id="splitter"></select>
+        </div>
+        <div class="row">
+            <div><div class="name">1100XH Wireless Rec</div><div class="specs">75mA / 102mA</div></div>
+            <select id="wifi"></select>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="calc-btn" onclick="calc()">CALCULATE 7Ah UNITS</button>
+        <button class="report-btn" onclick="copyReport()">COPY REPORT</button>
+        <button class="report-btn" onclick="location.reload()">RESET ALL</button>
+    </div>
+
+    <div class="res-box">
+        <span id="res-val">0 Batteries</span>
+        <div id="details">Enter quantities to begin.</div>
+    </div>
+</div>
+
+<script>
+    function fill(id, max) {
+        let s = document.getElementById(id);
+        for(let i=0; i<=max; i++) { s.options[s.options.length] = new Option(i, i); }
+    }
+    fill("keypad", 10); fill("mag_single", 20); fill("mag_double", 20); 
+    fill("ds939", 40); fill("isc", 40); fill("711s", 100);
+    fill("714", 10); fill("714_8", 10); fill("714_16", 10); fill("712", 10); fill("output", 10);
+    fill("horn", 10); fill("splitter", 10); fill("wifi", 10);
+
+    function calc() {
+        let ts = document.getElementById("panel").value * 174;
+        let ta = document.getElementById("panel").value * 217;
+        const ids = ["keypad", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
+        const draws = [[72,80],[12,39],[10,15],[4.2,4.7],[7,7],[20,20],[20,20],[17,17],[7,119],[0,75],[30,30],[75,102]];
+        
+        ids.forEach((id, i) => {
+            let q = document.getElementById(id).value;
+            ts += q * draws[i][0]; ta += q * draws[i][1];
+        });
+
+        // 2 zones per Single contact, 2 zones per Double contact, 2 zones per DS939 PIR, 2 zones per ISC PIR
+        let magSingle = parseInt(document.getElementById("mag_single").value) || 0;
+        let magDouble = parseInt(document.getElementById("mag_double").value) || 0;
+        let ds939 = parseInt(document.getElementById("ds939").value) || 0;
+        let isc = parseInt(document.getElementById("isc").value) || 0;
+
+        let totalZones = (magSingle * 2) + (magDouble * 2) + (ds939 * 2) + (isc * 2);
+        
+        ts += (totalZones * 1.6); 
+        ta += (totalZones * 2.0);
+
+        const totalAh = (((ts / 1000) * 24) + (((ts*0.90)+(ta*0.10))/1000)*(5/60)) * 1.25;
+        const batts = Math.ceil(totalAh / 7);
+
+        document.getElementById('res-val').innerText = batts + " x 7Ah Battery(s)";
+        document.getElementById('details').innerHTML = `Standby: ${ts.toFixed(1)}mA | Zones: ${totalZones}<br>Capacity: ${totalAh.toFixed(2)}Ah (10% Alarm Blend)`;
+    }
+
+    function copyReport() {
+        let r = "DMP SITE REPORT\n--------------------\n";
+        const ids = ["panel", "keypad", "mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
+        ids.forEach(id => {
+            let q = document.getElementById(id).value;
+            if(q > 0) {
+                let name = document.getElementById(id).closest('.row').querySelector('.name').innerText;
+                r += `${name}: ${q}\n`;
+            }
+        });
+        r += `--------------------\nBatteries: ${document.getElementById('res-val').innerText}`;
+        
+        navigator.clipboard.writeText(r).then(() => {
+            alert("Report copied to clipboard!");
+        }).catch(() => {
+            document.getElementById('fallback-text').value = r;
+            document.getElementById('fallback-box').style.display = 'block';
+        });
+    }
+</script>
+</body>
+</html>
