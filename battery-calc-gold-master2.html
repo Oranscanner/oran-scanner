@@ -53,9 +53,9 @@
             <div><div class="name">XR550DEA-G Panel</div><div class="specs">Local Power (0mA Bus Draw)</div></div>
             <select id="panel"><option value="1">1</option></select>
         </div>
-        <div class="row" style="opacity: 0.4;">
-            <div><div class="name">7060AN-W Keypad</div><div class="specs">Excluded (Dedicated Home-Run)</div></div>
-            <select id="keypad" disabled><option value="0">0</option></select>
+        <div class="row">
+            <div><div class="name">7060AN-W Keypad</div><div class="specs">30mA Standby (Dedicated Run)</div></div>
+            <select id="keypad"></select>
         </div>
         <div class="row">
             <div><div class="name">HSS-L2S-000 Contact SINGLE</div><div class="specs">0mA (+2 Zones)</div></div>
@@ -134,15 +134,15 @@
         let s = document.getElementById(id);
         for(let i=0; i<=max; i++) { s.options[s.options.length] = new Option(i, i); }
     }
-    fill("mag_single", 20); fill("mag_double", 20); fill("ds939", 40); fill("isc", 40); fill("711s", 100);
+    fill("keypad", 10); fill("mag_single", 20); fill("mag_double", 20); fill("ds939", 40); fill("isc", 40); fill("711s", 100);
     fill("714", 10); fill("714_8", 10); fill("714_16", 10); fill("712", 10); fill("output", 10);
     fill("horn", 10); fill("splitter", 10); fill("wifi", 10);
 
     function calcAll() {
         // --- 1. BATTERY STANDBY & QUANTITY CALCULATION (24-HR ONLY) ---
         let loadmA = 0;
-        const ids = ["ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
-        const draws = [12, 10, 4.2, 7, 20, 20, 17, 7, 0, 30, 75];
+        const ids = ["keypad", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
+        const draws = [30, 12, 10, 4.2, 7, 20, 20, 17, 7, 0, 30, 75];
         
         ids.forEach((id, i) => {
             let q = parseInt(document.getElementById(id).value) || 0;
@@ -207,7 +207,7 @@
         let r = "ORAN'S BATTERY & WIRE DISTANCE REPORT\n--------------------\n";
         let selectedAh = document.getElementById("bat_rating").value;
         r += `Selected Battery Rating: ${selectedAh} Ah\n--------------------\n`;
-        const ids = ["mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
+        const ids = ["keypad", "mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
         ids.forEach(id => {
             let q = document.getElementById(id).value;
             if(q > 0) {
