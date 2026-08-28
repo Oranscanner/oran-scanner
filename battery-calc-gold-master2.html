@@ -114,7 +114,7 @@
     <div class="section-title">18 AWG Wire Run Calculation</div>
     <div class="row">
         <div><div class="name">Motion Detectors on Wire Run</div><div class="specs">Each motion has 2x 711S modules</div></div>
-        <input type="number" id="wire_motions" value="5" min="1" max="100">
+        <input type="number" id="wire_motions" value="5" min="1" max="100" oninput="calcAll()">
     </div>
 
     <div class="btn-group">
@@ -163,11 +163,16 @@
         let bats24 = Math.ceil(ah24 / selectedAh);
 
         // --- 2. WIRE DISTANCE & VOLTAGE DROP CALCULATION ---
-        let numMotions = parseInt(document.getElementById("wire_motions").value) || 0;
+        let motionInput = document.getElementById("wire_motions");
+        let numMotions = parseInt(motionInput.value);
+        if (isNaN(numMotions) || numMotions < 0) { numMotions = 0; }
         
+        // 20.8 mA weighted draw per motion node (PIR + 2x 711S @ 5% alarm)
         let drawPerMotion = 0.0208;
         let totalRunCurrentAmps = numMotions * drawPerMotion;
 
+        // 18 AWG Loop Resistance = 0.01302 Ohms/ft
+        // Max allowable voltage drop: 13.6V DC down to 12.0V DC = 1.6V
         let rLoopPerFt = 0.01302;
         let maxVoltageDrop = 1.6;
 
@@ -190,16 +195,16 @@
             • <strong>Maximum Allowable Wire Distance:</strong> <span style="color:#4caf50; font-weight:bold; font-size:1.1em;">${maxFeet} Feet</span>
         `;
 
-        if (maxFeet < 300 && numMotions > 0) {
+        if (maxFeet < 500 && numMotions > 0) {
             out += `
                 <div class="alert-box">
                     ⚠️ <strong>POWER SUPPLY REQUIRED:</strong><br>
-                    Due to the load of ${numMotions} detectors, your 18 AWG wire run is restricted to <strong>${maxFeet} ft</strong>. An auxiliary power supply must be added if your wire run exceeds ${maxFeet} feet.
+                    Due to the load of ${numMotions} detectors (${(totalRunCurrentAmps * 1000).toFixed(1)} mA), your 18 AWG wire run is restricted to <strong>${maxFeet} ft</strong>. An auxiliary power supply must be added if your wire run exceeds ${maxFeet} feet.
                 </div>
             `;
         }
 
-        document.getElementById('res-val').innerText = `${bats24} x ${selectedAh}Ah BATTERIES REQUIRED | Max Wire: ${maxFeet} FT`;
+        document.getElementById('res-val').innerText = `${bats24} x ${selectedAh}Ah BATTERIES | Max Wire: ${maxFeet} FT`;
         document.getElementById('details').innerHTML = out;
     }
 
