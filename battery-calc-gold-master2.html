@@ -15,7 +15,6 @@
         .specs { font-size: 0.7em; color: #666; }
         select, input[type="number"] { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 85px; font-size: 0.95em; text-align: center; }
         
-        /* UPDATED ZONE COUNT BAR STYLING */
         .zone-counter-bar { background: #112211; border: 1px solid #2e7d32; padding: 10px; border-radius: 8px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
         .zone-counter-title { font-weight: bold; font-size: 0.9em; color: #81c784; text-transform: uppercase; }
         .zone-counter-val { font-weight: bold; font-size: 1.1em; color: #4caf50; background: #000; padding: 4px 16px; border-radius: 5px; border: 1px solid #2e7d32; }
@@ -133,8 +132,19 @@
 
     <div class="section-title">Motion Loop Wire Settings (18 AWG)</div>
     <div class="row">
-        <div><div class="name">Total Wire Run Distance</div><div class="specs">Input feet (18 AWG, 100' Steps, Max 1000')</div></div>
-        <input type="number" id="wire_dist" value="1000" min="100" max="1000" step="100">
+        <div><div class="name">Total Wire Run Distance</div><div class="specs">Select one-way distance (100' steps, Max 1000')</div></div>
+        <select id="wire_dist">
+            <option value="100">100'</option>
+            <option value="200">200'</option>
+            <option value="300">300'</option>
+            <option value="400">400'</option>
+            <option value="500">500'</option>
+            <option value="600">600'</option>
+            <option value="700">700'</option>
+            <option value="800">800'</option>
+            <option value="900">900'</option>
+            <option value="1000" selected>1000'</option>
+        </select>
     </div>
 
     <div class="btn-group">
@@ -251,9 +261,7 @@
     }
 
     function calcWireRun(motionCount) {
-        let rawInput = parseFloat(document.getElementById("wire_dist").value) || 1000;
-        let maxDist = Math.min(Math.max(Math.round(rawInput / 100) * 100, 100), 1000);
-        document.getElementById("wire_dist").value = maxDist;
+        let maxDist = parseInt(document.getElementById("wire_dist").value) || 1000;
 
         let startVolts = 13.6;
         let alertBox = document.getElementById("wire-alert");
@@ -266,7 +274,10 @@
 
         const nodeCurrentA = 0.02504;
         const totalLoopCurrentmA = motionCount * nodeCurrentA * 1000;
-        const ohmPerFt = 0.00651;
+        
+        // 18 AWG resistance per foot (one-way). Round trip uses 2x multiplier.
+        const ohmPerFtOneWay = 0.00651;
+        const ohmPerFtLoop = ohmPerFtOneWay * 2; 
 
         const spacingFt = maxDist / motionCount;
         let totalDrop = 0;
@@ -275,7 +286,8 @@
 
         for (let i = 1; i <= motionCount; i++) {
             let segmentCurrent = (motionCount - i + 1) * nodeCurrentA;
-            let segmentDrop = segmentCurrent * (spacingFt * ohmPerFt);
+            // Full round-trip drop along this segment:
+            let segmentDrop = segmentCurrent * (spacingFt * ohmPerFtLoop);
             totalDrop += segmentDrop;
             let voltsAtNode = startVolts - totalDrop;
 
@@ -290,10 +302,10 @@
 
         let wireReport = `
             <strong>Starting Bus Voltage:</strong> 13.6 VDC<br>
-            <strong>Total Wire Run Distance:</strong> ${maxDist} Feet<br>
+            <strong>One-Way Distance (Round Trip Loop Computed):</strong> ${maxDist} Feet (${maxDist * 2}' Loop)<br>
             <strong>Motion Count (Evenly Spaced):</strong> ${motionCount} detectors (~${spacingFt.toFixed(1)} ft apart)<br>
             <strong>Loop Current Draw (5% Alarm Blend):</strong> ${totalLoopCurrentmA.toFixed(1)} mA<br>
-            <strong>End-of-Run Voltage (@ ${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#ffca28'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Total Drop: ${totalDrop.toFixed(2)} V)<br>
+            <strong>End-of-Run Voltage (@ ${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#ffca28'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Total Round-Trip Drop: ${totalDrop.toFixed(2)} V)<br>
         `;
 
         if (cutoffDetector > 0) {
@@ -347,7 +359,6 @@
         });
     }
 
-    // Initialize dropdowns and live zone display upon page load
     window.onload = function() {
         initDropdowns();
         updateLiveZones();
