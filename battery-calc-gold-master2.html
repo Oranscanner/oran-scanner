@@ -150,7 +150,7 @@
     <div class="btn-group">
         <button class="calc-btn" onclick="calcAll()">CALCULATE BATTERY & WIRE RUN</button>
         <button class="report-btn" onclick="copyReport()">COPY REPORT</button>
-        <button class="report-btn" onclick="location.reload()">RESET ALL</button>
+        <button class="report-btn" onclick="resetAll()">RESET ALL</button>
     </div>
 
     <div class="res-box">
@@ -195,6 +195,25 @@
         fill("horn", 10); 
         fill("splitter", 10); 
         fill("wifi", 10);
+    }
+
+    function resetAll() {
+        document.getElementById("panel").value = "0";
+        document.getElementById("wire_dist").value = "100";
+        document.getElementById("bat_rating").selectedIndex = 0;
+        
+        const ids = ["keypad", "mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
+        ids.forEach(id => {
+            let elem = document.getElementById(id);
+            if (elem) elem.value = "0";
+        });
+
+        updateLiveZones();
+        document.getElementById('res-val').innerText = "System Ready";
+        document.getElementById('details').innerHTML = "Select parameters above and tap Calculate.";
+        document.getElementById('runtime-details').innerHTML = "Calculates runtime duration before reaching panel cutoff.";
+        document.getElementById('wire-details').innerHTML = "Calculates voltage drop using specific detector standby currents + 5% alarm addition.";
+        document.getElementById('wire-alert').style.display = "none";
     }
 
     function updateLiveZones() {
