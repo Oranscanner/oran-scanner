@@ -15,10 +15,10 @@
         .specs { font-size: 0.7em; color: #666; }
         select, input[type="number"] { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 85px; font-size: 0.95em; text-align: center; }
         
-        /* LIVE ZONE COUNT BAR STYLING */
+        /* UPDATED ZONE COUNT BAR STYLING */
         .zone-counter-bar { background: #112211; border: 1px solid #2e7d32; padding: 10px; border-radius: 8px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
         .zone-counter-title { font-weight: bold; font-size: 0.9em; color: #81c784; text-transform: uppercase; }
-        .zone-counter-val { font-weight: bold; font-size: 1.1em; color: #4caf50; background: #000; padding: 4px 12px; border-radius: 5px; border: 1px solid #2e7d32; }
+        .zone-counter-val { font-weight: bold; font-size: 1.1em; color: #4caf50; background: #000; padding: 4px 16px; border-radius: 5px; border: 1px solid #2e7d32; }
 
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .calc-btn { grid-column: span 2; padding: 14px; background: #ff3d00; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; text-transform: uppercase; }
@@ -89,8 +89,8 @@
         </div>
 
         <div class="zone-counter-bar">
-            <div class="zone-counter-title">Live Total Active Zone Count</div>
-            <div class="zone-counter-val" id="live-zone-display">0 Zones</div>
+            <div class="zone-counter-title">ZONE COUNT</div>
+            <div class="zone-counter-val" id="live-zone-display">0</div>
         </div>
 
         <div class="row">
@@ -163,11 +163,29 @@
 <script>
     function fill(id, max) {
         let s = document.getElementById(id);
-        for(let i=0; i<=max; i++) { s.options[s.options.length] = new Option(i, i); }
+        if (!s) return;
+        s.options.length = 0;
+        for(let i=0; i<=max; i++) { 
+            s.options[s.options.length] = new Option(i, i); 
+        }
     }
-    fill("keypad", 10); fill("mag_single", 20); fill("mag_double", 20); fill("ds939", 40); fill("isc", 40); fill("711s", 100);
-    fill("714", 10); fill("714_8", 10); fill("714_16", 10); fill("712", 10); fill("output", 10);
-    fill("horn", 10); fill("splitter", 10); fill("wifi", 10);
+
+    function initDropdowns() {
+        fill("keypad", 10); 
+        fill("mag_single", 20); 
+        fill("mag_double", 20); 
+        fill("ds939", 40); 
+        fill("isc", 40); 
+        fill("711s", 100);
+        fill("714", 10); 
+        fill("714_8", 10); 
+        fill("714_16", 10); 
+        fill("712", 10); 
+        fill("output", 10);
+        fill("horn", 10); 
+        fill("splitter", 10); 
+        fill("wifi", 10);
+    }
 
     function updateLiveZones() {
         let magSingle = parseInt(document.getElementById("mag_single").value) || 0;
@@ -176,7 +194,7 @@
         let isc = parseInt(document.getElementById("isc").value) || 0;
 
         let totalZones = (magSingle * 2) + (magDouble * 2) + (ds939 * 2) + (isc * 2);
-        document.getElementById("live-zone-display").innerText = `${totalZones} Zones`;
+        document.getElementById("live-zone-display").innerText = totalZones;
         return totalZones;
     }
 
@@ -206,4 +224,134 @@
             <hr style="border: 0; border-top: 1px solid #333; margin: 8px 0;">
             <strong>24-Hour Battery Requirement (${selectedAh} Ah Rating):</strong><br>
             • Required Capacity (w/ 20% Safety Factor): <strong>${ah24.toFixed(2)} Ah</strong><br>
-            • <span style="color:#4caf50; font-
+            • <span style="color:#4caf50; font-weight:bold; font-size:1.1em;">BATTERY COUNT NEEDED: ${bats24} x (${selectedAh} Ah)</span>
+        `;
+
+        document.getElementById('res-val').innerText = `${bats24} x ${selectedAh}Ah BATTERIES REQUIRED`;
+        document.getElementById('details').innerHTML = out;
+
+        if (loadmA > 0) {
+            let totalAvailableAh = bats24 * selectedAh;
+            let runtimeHours = (totalAvailableAh / (loadmA / 1000));
+            let hrs = Math.floor(runtimeHours);
+            let mins = Math.round((runtimeHours - hrs) * 60);
+
+            document.getElementById('runtime-details').innerHTML = `
+                Estimated Standby Duration (to 10.2V DC Cutoff):<br>
+                <strong style="font-size: 1.2em; color: #93c5fd;">${hrs} Hours, ${mins} Minutes</strong><br>
+                <span style="font-size: 0.8em; color: #60a5fa;">(Based on ${bats24} x ${selectedAh} Ah batteries @ ${loadmA.toFixed(1)} mA continuous load)</span>
+            `;
+        } else {
+            document.getElementById('runtime-details').innerHTML = `Select devices to calculate cutoff runtime.`;
+        }
+
+        let ds939 = parseInt(document.getElementById("ds939").value) || 0;
+        let isc = parseInt(document.getElementById("isc").value) || 0;
+        calcWireRun(ds939 + isc);
+    }
+
+    function calcWireRun(motionCount) {
+        let rawInput = parseFloat(document.getElementById("wire_dist").value) || 1000;
+        let maxDist = Math.min(Math.max(Math.round(rawInput / 100) * 100, 100), 1000);
+        document.getElementById("wire_dist").value = maxDist;
+
+        let startVolts = 13.6;
+        let alertBox = document.getElementById("wire-alert");
+        alertBox.style.display = "none";
+
+        if (motionCount === 0) {
+            document.getElementById("wire-details").innerHTML = "Select DS939 or ISC motion detectors to calculate wire run voltage drop.";
+            return;
+        }
+
+        const nodeCurrentA = 0.02504;
+        const totalLoopCurrentmA = motionCount * nodeCurrentA * 1000;
+        const ohmPerFt = 0.00651;
+
+        const spacingFt = maxDist / motionCount;
+        let totalDrop = 0;
+        let cutoffDetector = 0;
+        let cutoffFeet = 0;
+
+        for (let i = 1; i <= motionCount; i++) {
+            let segmentCurrent = (motionCount - i + 1) * nodeCurrentA;
+            let segmentDrop = segmentCurrent * (spacingFt * ohmPerFt);
+            totalDrop += segmentDrop;
+            let voltsAtNode = startVolts - totalDrop;
+
+            if (voltsAtNode <= 12.0 && cutoffDetector === 0) {
+                cutoffDetector = i;
+                cutoffFeet = Math.round(i * spacingFt);
+            }
+        }
+
+        let endVolts = Math.max(0, startVolts - totalDrop);
+        let requiresAuxPower = (endVolts <= 12.0) || (totalDrop >= 1.6) || (totalLoopCurrentmA >= 999);
+
+        let wireReport = `
+            <strong>Starting Bus Voltage:</strong> 13.6 VDC<br>
+            <strong>Total Wire Run Distance:</strong> ${maxDist} Feet<br>
+            <strong>Motion Count (Evenly Spaced):</strong> ${motionCount} detectors (~${spacingFt.toFixed(1)} ft apart)<br>
+            <strong>Loop Current Draw (5% Alarm Blend):</strong> ${totalLoopCurrentmA.toFixed(1)} mA<br>
+            <strong>End-of-Run Voltage (@ ${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#ffca28'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Total Drop: ${totalDrop.toFixed(2)} V)<br>
+        `;
+
+        if (cutoffDetector > 0) {
+            wireReport += `
+                <hr style="border: 0; border-top: 1px solid #ffb300; margin: 8px 0;">
+                <span style="color:#ff5252; font-weight:bold;">12.0V Cutoff Threshold Reached At:</span><br>
+                • Detector #${cutoffDetector} @ <strong>${cutoffFeet} Feet</strong><br>
+                • <strong style="color:#ff8a80;">AN AUXILIARY POWER SUPPLY IS REQUIRED AT/BEFORE THIS POINT.</strong>
+            `;
+        } else {
+            wireReport += `<br><span style="color:#4caf50; font-weight:bold;">✓ Voltage remains above 12.0 VDC across the full ${maxDist} ft wire run.</span>`;
+        }
+
+        document.getElementById("wire-details").innerHTML = wireReport;
+
+        if (requiresAuxPower) {
+            let reason = [];
+            if (endVolts <= 12.0 || totalDrop >= 1.6) reason.push(`Voltage drop exceeds 1.6V (End voltage: ${endVolts.toFixed(2)}V DC)`);
+            if (totalLoopCurrentmA >= 999) reason.push(`Loop current draw reaches/exceeds 999 mA (${totalLoopCurrentmA.toFixed(1)} mA)`);
+
+            alertBox.style.display = "block";
+            alertBox.innerHTML = `⚠️ AUXILIARY POWER SUPPLY REQUIRED<br><span style="font-size:0.8em; font-weight:normal;">${reason.join(' | ')}</span>`;
+
+            setTimeout(() => {
+                alert(`⚠️ AUXILIARY POWER SUPPLY REQUIRED!\n\nReason:\n- ${reason.join('\n- ')}\n\nAdd an auxiliary power supply at or before Detector #${cutoffDetector || motionCount} (${cutoffFeet || maxDist} ft).`);
+            }, 100);
+        }
+    }
+
+    function copyReport() {
+        let r = "ORAN'S BATTERY CALCULATOR REPORT\n--------------------\n";
+        let selectedAh = document.getElementById("bat_rating").value;
+        r += `Selected Battery Rating: ${selectedAh} Ah\n--------------------\n`;
+        const ids = ["panel", "keypad", "mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
+        ids.forEach(id => {
+            let q = document.getElementById(id).value;
+            if(q > 0) {
+                let name = document.getElementById(id).closest('.row').querySelector('.name').innerText;
+                r += `${name}: ${q}\n`;
+            }
+        });
+        r += `--------------------\n${document.getElementById('details').innerText.replace(/<[^>]*>/g, '')}\n`;
+        r += `--------------------\n${document.getElementById('runtime-details').innerText.replace(/<[^>]*>/g, '')}\n`;
+        r += `--------------------\nWIRE RUN VOLTAGE DROP:\n${document.getElementById('wire-details').innerText.replace(/<[^>]*>/g, '')}`;
+        
+        navigator.clipboard.writeText(r).then(() => {
+            alert("Report copied to clipboard!");
+        }).catch(() => {
+            document.getElementById('fallback-text').value = r;
+            document.getElementById('fallback-box').style.display = 'block';
+        });
+    }
+
+    // Initialize dropdowns and live zone display upon page load
+    window.onload = function() {
+        initDropdowns();
+        updateLiveZones();
+    };
+</script>
+</body>
+</html>
