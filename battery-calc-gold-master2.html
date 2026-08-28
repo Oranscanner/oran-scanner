@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oran's Battery & Wire Distance Calc</title>
+    <title>Oran's Battery Calculator</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; color: #fff; padding: 10px; margin: 0; }
         .card { background: #1a1a1b; padding: 15px; border-radius: 12px; max-width: 520px; margin: auto; border: 1px solid #333; }
@@ -13,14 +13,13 @@
         .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #2a2a2b; }
         .name { font-weight: 600; font-size: 0.9em; color: #efefef; }
         .specs { font-size: 0.7em; color: #666; }
-        select, input[type="number"] { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 85px; font-size: 0.95em; text-align: center; }
+        select { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 85px; font-size: 0.95em; text-align: center; }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .calc-btn { grid-column: span 2; padding: 14px; background: #ff3d00; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; text-transform: uppercase; }
         .report-btn { padding: 10px; background: #444; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85em; }
         .res-box { margin-top: 15px; padding: 15px; background: #0f1c10; border-radius: 10px; border: 1px solid #2e7d32; }
         .res-title { font-size: 1.2em; color: #4caf50; font-weight: bold; text-align: center; margin-bottom: 8px; }
         #details { font-size: 0.85em; color: #ccc; line-height: 1.5; text-align: left; }
-        .alert-box { background: #2a1500; border: 1px solid #ff9800; border-radius: 6px; padding: 8px; margin-top: 8px; color: #ffb74d; font-size: 0.85em; }
         #fallback-box { display:none; position:fixed; top:10%; left:5%; width:80%; background:#222; border:2px solid #ff3d00; padding:20px; z-index:100; border-radius:10px; box-shadow: 0 0 20px #000; }
         #fallback-text { width:100%; height:150px; background:#000; color:#fff; border:1px solid #444; margin-bottom:10px; font-family:monospace; }
     </style>
@@ -34,7 +33,7 @@
 </div>
 
 <div class="card">
-    <h2>ORAN'S BATTERY & WIRE CALC</h2>
+    <h2>ORAN'S BATTERY CALCULATOR</h2>
     <div class="sub">Oran Medina 2026 — Gold Master v2</div>
 
     <div class="section-title">Battery Configuration</div>
@@ -54,7 +53,7 @@
             <select id="panel"><option value="1">1</option></select>
         </div>
         <div class="row">
-            <div><div class="name">7060AN-W Keypad</div><div class="specs">30mA Standby (Dedicated Run)</div></div>
+            <div><div class="name">7060AN-W Keypad</div><div class="specs">72mA Standby / 87mA Alarm</div></div>
             <select id="keypad"></select>
         </div>
         <div class="row">
@@ -111,14 +110,8 @@
         </div>
     </div>
 
-    <div class="section-title">18 AWG Wire Run Calculation</div>
-    <div class="row">
-        <div><div class="name">Motion Detectors on Wire Run</div><div class="specs">Each motion has 2x 711S modules</div></div>
-        <input type="number" id="wire_motions" value="5" min="1" max="100" oninput="calcAll()">
-    </div>
-
     <div class="btn-group">
-        <button class="calc-btn" onclick="calcAll()">CALCULATE BATTERY & WIRE DISTANCE</button>
+        <button class="calc-btn" onclick="calcAll()">CALCULATE BATTERY REQUIREMENT</button>
         <button class="report-btn" onclick="copyReport()">COPY REPORT</button>
         <button class="report-btn" onclick="location.reload()">RESET ALL</button>
     </div>
@@ -139,10 +132,9 @@
     fill("horn", 10); fill("splitter", 10); fill("wifi", 10);
 
     function calcAll() {
-        // --- 1. BATTERY STANDBY & QUANTITY CALCULATION (24-HR ONLY) ---
         let loadmA = 0;
         const ids = ["keypad", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
-        const draws = [30, 12, 10, 4.2, 7, 20, 20, 17, 7, 0, 30, 75];
+        const draws = [72, 12, 10, 4.2, 7, 20, 20, 17, 7, 0, 30, 75];
         
         ids.forEach((id, i) => {
             let q = parseInt(document.getElementById(id).value) || 0;
@@ -162,54 +154,21 @@
         let selectedAh = parseFloat(document.getElementById("bat_rating").value) || 7.0;
         let bats24 = Math.ceil(ah24 / selectedAh);
 
-        // --- 2. WIRE DISTANCE & VOLTAGE DROP CALCULATION ---
-        let motionInput = document.getElementById("wire_motions");
-        let numMotions = parseInt(motionInput.value);
-        if (isNaN(numMotions) || numMotions < 0) { numMotions = 0; }
-        
-        // 20.8 mA weighted draw per motion node (PIR + 2x 711S @ 5% alarm)
-        let drawPerMotion = 0.0208;
-        let totalRunCurrentAmps = numMotions * drawPerMotion;
-
-        // 18 AWG Loop Resistance = 0.01302 Ohms/ft
-        // Max allowable voltage drop: 13.6V DC down to 12.0V DC = 1.6V
-        let rLoopPerFt = 0.01302;
-        let maxVoltageDrop = 1.6;
-
-        let maxFeet = 0;
-        if (totalRunCurrentAmps > 0) {
-            maxFeet = Math.floor(maxVoltageDrop / (totalRunCurrentAmps * rLoopPerFt));
-        }
-
-        // --- 3. OUTPUT DISPLAY ---
         let out = `
-            <strong>Total Standby Current:</strong> ${loadmA.toFixed(1)} mA | <strong>Total Zones:</strong> ${totalZones}<br>
+            <strong>Total Standby Current:</strong> ${loadmA.toFixed(1)} mA<br>
+            <strong>Total Active Zones:</strong> ${totalZones}<br>
             <hr style="border: 0; border-top: 1px solid #333; margin: 8px 0;">
-            <strong>24-Hour Battery Requirement (${selectedAh} Ah Selected):</strong><br>
-            • Capacity Required (w/ 20% margin): <strong>${ah24.toFixed(2)} Ah</strong><br>
-            • <span style="color:#4caf50; font-weight:bold; font-size:1.1em;">BATTERY COUNT NEEDED: ${bats24} x (${selectedAh} Ah)</span><br>
-            <hr style="border: 0; border-top: 1px solid #333; margin: 8px 0;">
-            <strong>18 AWG Wire Distance Limit:</strong><br>
-            • Wire Run Load: <strong>${numMotions} Motion Detectors</strong> (${(totalRunCurrentAmps * 1000).toFixed(1)} mA total)<br>
-            • Voltage Drop Cutoff: 13.6V DC &rarr; 12.0V DC (1.6V Drop Limit)<br>
-            • <strong>Maximum Allowable Wire Distance:</strong> <span style="color:#4caf50; font-weight:bold; font-size:1.1em;">${maxFeet} Feet</span>
+            <strong>24-Hour Battery Requirement (${selectedAh} Ah Rating):</strong><br>
+            • Required Capacity (w/ 20% Safety Factor): <strong>${ah24.toFixed(2)} Ah</strong><br>
+            • <span style="color:#4caf50; font-weight:bold; font-size:1.1em;">BATTERY COUNT NEEDED: ${bats24} x (${selectedAh} Ah)</span>
         `;
 
-        if (maxFeet < 500 && numMotions > 0) {
-            out += `
-                <div class="alert-box">
-                    ⚠️ <strong>POWER SUPPLY REQUIRED:</strong><br>
-                    Due to the load of ${numMotions} detectors (${(totalRunCurrentAmps * 1000).toFixed(1)} mA), your 18 AWG wire run is restricted to <strong>${maxFeet} ft</strong>. An auxiliary power supply must be added if your wire run exceeds ${maxFeet} feet.
-                </div>
-            `;
-        }
-
-        document.getElementById('res-val').innerText = `${bats24} x ${selectedAh}Ah BATTERIES | Max Wire: ${maxFeet} FT`;
+        document.getElementById('res-val').innerText = `${bats24} x ${selectedAh}Ah BATTERIES REQUIRED`;
         document.getElementById('details').innerHTML = out;
     }
 
     function copyReport() {
-        let r = "ORAN'S BATTERY & WIRE DISTANCE REPORT\n--------------------\n";
+        let r = "ORAN'S BATTERY CALCULATOR REPORT\n--------------------\n";
         let selectedAh = document.getElementById("bat_rating").value;
         r += `Selected Battery Rating: ${selectedAh} Ah\n--------------------\n`;
         const ids = ["keypad", "mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
