@@ -13,15 +13,14 @@
         .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #2a2a2b; }
         .name { font-weight: 600; font-size: 0.9em; color: #efefef; }
         .specs { font-size: 0.7em; color: #666; }
-        select, input[type="number"] { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 75px; font-size: 0.95em; text-align: center; }
+        select, input[type="number"] { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 85px; font-size: 0.95em; text-align: center; }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .calc-btn { grid-column: span 2; padding: 14px; background: #ff3d00; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 1em; cursor: pointer; text-transform: uppercase; }
         .report-btn { padding: 10px; background: #444; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85em; }
         .res-box { margin-top: 15px; padding: 15px; background: #0f1c10; border-radius: 10px; border: 1px solid #2e7d32; }
         .res-title { font-size: 1.2em; color: #4caf50; font-weight: bold; text-align: center; margin-bottom: 8px; }
         #details { font-size: 0.85em; color: #ccc; line-height: 1.5; text-align: left; }
-        .aux-alert { background: #2a1500; border: 1px solid #ff9800; border-radius: 6px; padding: 8px; margin-top: 8px; color: #ffb74d; font-size: 0.85em; }
-        .node-step { margin-left: 10px; color: #fff; }
+        .alert-box { background: #2a1500; border: 1px solid #ff9800; border-radius: 6px; padding: 8px; margin-top: 8px; color: #ffb74d; font-size: 0.85em; }
         #fallback-box { display:none; position:fixed; top:10%; left:5%; width:80%; background:#222; border:2px solid #ff3d00; padding:20px; z-index:100; border-radius:10px; box-shadow: 0 0 20px #000; }
         #fallback-text { width:100%; height:150px; background:#000; color:#fff; border:1px solid #444; margin-bottom:10px; font-family:monospace; }
     </style>
@@ -36,7 +35,17 @@
 
 <div class="card">
     <h2>ORAN'S BATTERY & WIRE CALC</h2>
-    <div class="sub">Oran Medina 2026 — Gold Master</div>
+    <div class="sub">Oran Medina 2026 — Gold Master v2</div>
+
+    <div class="section-title">Battery Configuration</div>
+    <div class="row">
+        <div><div class="name">Selected Battery Rating</div><div class="specs">Used to calculate total 24-hr battery quantity</div></div>
+        <select id="bat_rating">
+            <option value="7">7.0 Ah</option>
+            <option value="7.5">7.5 Ah</option>
+            <option value="9">9.0 Ah</option>
+        </select>
+    </div>
 
     <div class="section-title">System Devices & Standby Load</div>
     <div id="list-container">
@@ -102,14 +111,10 @@
         </div>
     </div>
 
-    <div class="section-title">18 AWG Wire Run Parameters</div>
+    <div class="section-title">18 AWG Wire Run Calculation</div>
     <div class="row">
-        <div><div class="name">Motion Detector Run Count</div><div class="specs">PIR + 2x 711S modules per node</div></div>
-        <input type="number" id="wire_motions" value="10" min="1" max="100">
-    </div>
-    <div class="row">
-        <div><div class="name">Spacing Between Detectors</div><div class="specs">Distance per drop (Feet)</div></div>
-        <input type="number" id="wire_spacing" value="50" min="5" max="1000">
+        <div><div class="name">Motion Detectors on Wire Run</div><div class="specs">Each motion has 2x 711S modules</div></div>
+        <input type="number" id="wire_motions" value="5" min="1" max="100">
     </div>
 
     <div class="btn-group">
@@ -134,7 +139,7 @@
     fill("horn", 10); fill("splitter", 10); fill("wifi", 10);
 
     function calcAll() {
-        // --- 1. BATTERY STANDBY CALCULATION ---
+        // --- 1. BATTERY STANDBY & QUANTITY CALCULATION (24-HR ONLY) ---
         let loadmA = 0;
         const ids = ["ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
         const draws = [12, 10, 4.2, 7, 20, 20, 17, 7, 0, 30, 75];
@@ -152,77 +157,60 @@
         let totalZones = (magSingle * 2) + (magDouble * 2) + (ds939 * 2) + (isc * 2);
         loadmA += (totalZones * 1.6);
 
-        let ah24 = ((loadmA / 1000) * 24 * 1.2).toFixed(2);
-        let ah60 = ((loadmA / 1000) * 60 * 1.2).toFixed(2);
+        let ah24 = ((loadmA / 1000) * 24 * 1.2);
 
-        // --- 2. MULTI-DROP WIRE DISTANCE & VOLTAGE DROP CALCULATION ---
+        let selectedAh = parseFloat(document.getElementById("bat_rating").value) || 7.0;
+        let bats24 = Math.ceil(ah24 / selectedAh);
+
+        // --- 2. WIRE DISTANCE & VOLTAGE DROP CALCULATION ---
         let numMotions = parseInt(document.getElementById("wire_motions").value) || 0;
-        let spacing = parseFloat(document.getElementById("wire_spacing").value) || 0;
         
-        // Motion node specs: PIR (12mA) + 2x 711S (8.4mA) = 20.4 mA standby, 28.4 mA alarm
-        // 5% Alarm weighted draw: (0.95 * 20.4mA) + (0.05 * 28.4mA) = 20.8 mA = 0.0208 A
-        const iDetector = 0.0208;
-        const rLoopPerFt = 0.01302; // 18 AWG loop resistance per foot
-        const vStart = 13.6;
-        const vMin = 12.0;
-        const vMaxDrop = vStart - vMin; // 1.6V drop budget
+        // Motion assembly: DS939 PIR (12mA) + 2x 711S (8.4mA) = 20.4 mA standby, 28.4 mA alarm
+        // 5% in alarm weighted draw: 20.8 mA = 0.0208 A
+        let drawPerMotion = 0.0208;
+        let totalRunCurrentAmps = numMotions * drawPerMotion;
 
-        let currentV = vStart;
-        let totalDistanceFt = 0;
-        let auxSupplies = [];
-        let currentSegmentMotions = 0;
-        let segmentDrop = 0;
+        // 18 AWG Loop Resistance = 0.01302 Ohms/ft
+        // Max allowable voltage drop from 13.6V DC down to 12.0V DC = 1.6V
+        let rLoopPerFt = 0.01302;
+        let maxVoltageDrop = 1.6;
 
-        for (let i = 1; i <= numMotions; i++) {
-            currentSegmentMotions++;
-            // Calculate voltage drop across this spacing segment based on remaining downstream motions in current leg
-            let currentLegDraw = currentSegmentMotions * iDetector;
-            let legDrop = currentLegDraw * spacing * rLoopPerFt;
-            segmentDrop += legDrop;
-
-            if (segmentDrop >= vMaxDrop) {
-                let nodeDist = i * spacing;
-                auxSupplies.push({
-                    motionIndex: i,
-                    distance: nodeDist,
-                    dropBeforeReset: segmentDrop.toFixed(2)
-                });
-                // Reset voltage for remaining downstream leg
-                segmentDrop = 0;
-                currentSegmentMotions = 0;
-            }
+        let maxFeet = 0;
+        if (totalRunCurrentAmps > 0) {
+            maxFeet = Math.floor(maxVoltageDrop / (totalRunCurrentAmps * rLoopPerFt));
         }
 
-        totalDistanceFt = numMotions * spacing;
-
-        // --- 3. OUTPUT GENERATION ---
+        // --- 3. OUTPUT DISPLAY ---
         let out = `
             <strong>Total Standby Current:</strong> ${loadmA.toFixed(1)} mA | <strong>Total Zones:</strong> ${totalZones}<br>
-            <strong>24-Hr Standby Requirement:</strong> ${ah24} Ah<br>
-            <strong>60-Hr Standby Requirement:</strong> ${ah60} Ah<br>
-            <hr style="border: 0; border-top: 1px solid #333; margin: 10px 0;">
-            <strong>Wire Run Summary (18 AWG):</strong><br>
-            • Total Bus Length: ${totalDistanceFt} ft (${numMotions} Motion Nodes @ ${spacing} ft spacing)<br>
-            • Node Draw: 20.8 mA / node (DS939 + 2x 711S | 5% Alarm Rule)<br>
-            • Voltage Cutoff: 12.0 VDC (1.6V Drop Limit from 13.6V)<br>
+            <hr style="border: 0; border-top: 1px solid #333; margin: 8px 0;">
+            <strong>24-Hour Battery Requirement (${selectedAh} Ah Selected):</strong><br>
+            • 24-Hr Capacity Needed: <strong>${ah24.toFixed(2)} Ah</strong><br>
+            • Required Battery Quantity: <strong>${bats24} x ${selectedAh}Ah Batteries</strong><br>
+            <hr style="border: 0; border-top: 1px solid #333; margin: 8px 0;">
+            <strong>18 AWG Wire Distance Limit:</strong><br>
+            • Wire Run Load: <strong>${numMotions} Motion Detectors</strong> (${(totalRunCurrentAmps * 1000).toFixed(1)} mA total)<br>
+            • Voltage Drop Cutoff: 13.6V DC &rarr; 12.0V DC (1.6V Drop Limit)<br>
+            • <strong>Maximum Allowable Wire Distance:</strong> <span style="color:#4caf50; font-weight:bold; font-size:1.1em;">${maxFeet} Feet</span>
         `;
 
-        if (auxSupplies.length > 0) {
-            out += `<div class="aux-alert"><strong>⚠️ AUXILIARY POWER REQUIRED (${auxSupplies.length}):</strong><br>`;
-            auxSupplies.forEach((aux, idx) => {
-                out += `<div class="node-step">Power Supply #${idx + 1}: Insert after <strong>Detector #${aux.motionIndex}</strong> at <strong>${aux.distance} ft</strong> (Voltage drops by ~${aux.dropBeforeReset}V to 12.0V DC).</div>`;
-            });
-            out += `</div>`;
-        } else {
-            out += `<div style="color:#4caf50; margin-top:8px;">✓ Complete wire run operates within limits. Voltage remains above 12.0V DC without auxiliary power.</div>`;
+        if (maxFeet < 300 && numMotions > 0) {
+            out += `
+                <div class="alert-box">
+                    ⚠️ <strong>POWER SUPPLY REQUIRED:</strong><br>
+                    Due to the load of ${numMotions} detectors, your 18 AWG wire run is restricted to <strong>${maxFeet} ft</strong>. An auxiliary power supply must be added if your wire run exceeds ${maxFeet} feet.
+                </div>
+            `;
         }
 
-        document.getElementById('res-val').innerText = `${ah24} Ah (24-Hr) | ${numMotions} Nodes`;
+        document.getElementById('res-val').innerText = `${ah24.toFixed(1)} Ah | Max Wire Run: ${maxFeet} FT`;
         document.getElementById('details').innerHTML = out;
     }
 
     function copyReport() {
         let r = "ORAN'S BATTERY & WIRE DISTANCE REPORT\n--------------------\n";
+        let selectedAh = document.getElementById("bat_rating").value;
+        r += `Selected Battery: ${selectedAh} Ah\n--------------------\n`;
         const ids = ["mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
         ids.forEach(id => {
             let q = document.getElementById(id).value;
