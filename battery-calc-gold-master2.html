@@ -39,7 +39,7 @@
 
     <div class="section-title">Battery Configuration</div>
     <div class="row">
-        <div><div class="name">Selected Battery Rating</div><div class="specs">Used to calculate total 24-hr battery quantity</div></div>
+        <div><div class="name">Selected Battery Rating</div><div class="specs">Used to calculate total battery quantity</div></div>
         <select id="bat_rating">
             <option value="7">7.0 Ah</option>
             <option value="7.5">7.5 Ah</option>
@@ -165,13 +165,9 @@
         // --- 2. WIRE DISTANCE & VOLTAGE DROP CALCULATION ---
         let numMotions = parseInt(document.getElementById("wire_motions").value) || 0;
         
-        // Motion assembly: DS939 PIR (12mA) + 2x 711S (8.4mA) = 20.4 mA standby, 28.4 mA alarm
-        // 5% in alarm weighted draw: 20.8 mA = 0.0208 A
         let drawPerMotion = 0.0208;
         let totalRunCurrentAmps = numMotions * drawPerMotion;
 
-        // 18 AWG Loop Resistance = 0.01302 Ohms/ft
-        // Max allowable voltage drop from 13.6V DC down to 12.0V DC = 1.6V
         let rLoopPerFt = 0.01302;
         let maxVoltageDrop = 1.6;
 
@@ -185,8 +181,8 @@
             <strong>Total Standby Current:</strong> ${loadmA.toFixed(1)} mA | <strong>Total Zones:</strong> ${totalZones}<br>
             <hr style="border: 0; border-top: 1px solid #333; margin: 8px 0;">
             <strong>24-Hour Battery Requirement (${selectedAh} Ah Selected):</strong><br>
-            • 24-Hr Capacity Needed: <strong>${ah24.toFixed(2)} Ah</strong><br>
-            • Required Battery Quantity: <strong>${bats24} x ${selectedAh}Ah Batteries</strong><br>
+            • Capacity Required (w/ 20% margin): <strong>${ah24.toFixed(2)} Ah</strong><br>
+            • <span style="color:#4caf50; font-weight:bold; font-size:1.1em;">BATTERY COUNT NEEDED: ${bats24} x (${selectedAh} Ah)</span><br>
             <hr style="border: 0; border-top: 1px solid #333; margin: 8px 0;">
             <strong>18 AWG Wire Distance Limit:</strong><br>
             • Wire Run Load: <strong>${numMotions} Motion Detectors</strong> (${(totalRunCurrentAmps * 1000).toFixed(1)} mA total)<br>
@@ -203,14 +199,14 @@
             `;
         }
 
-        document.getElementById('res-val').innerText = `${ah24.toFixed(1)} Ah | Max Wire Run: ${maxFeet} FT`;
+        document.getElementById('res-val').innerText = `${bats24} x ${selectedAh}Ah BATTERIES REQUIRED | Max Wire: ${maxFeet} FT`;
         document.getElementById('details').innerHTML = out;
     }
 
     function copyReport() {
         let r = "ORAN'S BATTERY & WIRE DISTANCE REPORT\n--------------------\n";
         let selectedAh = document.getElementById("bat_rating").value;
-        r += `Selected Battery: ${selectedAh} Ah\n--------------------\n`;
+        r += `Selected Battery Rating: ${selectedAh} Ah\n--------------------\n`;
         const ids = ["mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
         ids.forEach(id => {
             let q = document.getElementById(id).value;
