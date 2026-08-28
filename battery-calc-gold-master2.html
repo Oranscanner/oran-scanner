@@ -13,7 +13,7 @@
         .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #2a2a2b; }
         .name { font-weight: 600; font-size: 0.9em; color: #efefef; }
         .specs { font-size: 0.7em; color: #666; }
-        select, input[type="number"] { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 85px; font-size: 0.95em; text-align: center; }
+        select { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 85px; font-size: 0.95em; text-align: center; }
         
         .zone-counter-bar { background: #112211; border: 1px solid #2e7d32; padding: 10px; border-radius: 8px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
         .zone-counter-title { font-weight: bold; font-size: 0.9em; color: #81c784; text-transform: uppercase; }
@@ -79,11 +79,11 @@
             <select id="mag_double" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
-            <div><div class="name">DS939 360° PIR</div><div class="specs">12mA Standby (+2 Zones)</div></div>
+            <div><div class="name">DS939 360° PIR</div><div class="specs">12mA Stby / 39mA Alarm (+2 Zones)</div></div>
             <select id="ds939" onchange="updateLiveZones()"></select>
         </div>
         <div class="row">
-            <div><div class="name">ISC-PPR1-W16 PIR</div><div class="specs">10mA Standby (+2 Zones)</div></div>
+            <div><div class="name">ISC-PPR1-W16 PIR</div><div class="specs">10mA Stby / 15mA Alarm (+2 Zones)</div></div>
             <select id="isc" onchange="updateLiveZones()"></select>
         </div>
 
@@ -139,11 +139,11 @@
             <option value="300">300'</option>
             <option value="400">400'</option>
             <option value="500">500'</option>
-            <option value="600">600'</option>
+            <option value="600" selected>600'</option>
             <option value="700">700'</option>
             <option value="800">800'</option>
             <option value="900">900'</option>
-            <option value="1000" selected>1000'</option>
+            <option value="1000">1000'</option>
         </select>
     </div>
 
@@ -165,7 +165,7 @@
 
     <div class="wire-box">
         <div class="wire-title">18 AWG Motion Run Voltage Drop</div>
-        <div id="wire-details">Calculates voltage drop along the wire run using selected motion detectors (2x 711S per motion @ 5% alarm blend).</div>
+        <div id="wire-details">Calculates voltage drop using specific detector standby currents + 5% alarm addition.</div>
         <div id="wire-alert" class="alert-banner"></div>
     </div>
 </div>
@@ -257,36 +257,48 @@
 
         let ds939 = parseInt(document.getElementById("ds939").value) || 0;
         let isc = parseInt(document.getElementById("isc").value) || 0;
-        calcWireRun(ds939 + isc);
+        let mods711s = parseInt(document.getElementById("711s").value) || 0;
+        calcWireRun(ds939, isc, mods711s);
     }
 
-    function calcWireRun(motionCount) {
-        let maxDist = parseInt(document.getElementById("wire_dist").value) || 1000;
+    function calcWireRun(ds939Count, iscCount, mods711sCount) {
+        let maxDist = parseInt(document.getElementById("wire_dist").value) || 600;
+        let totalMotions = ds939Count + iscCount;
 
         let startVolts = 13.6;
         let alertBox = document.getElementById("wire-alert");
         alertBox.style.display = "none";
 
-        if (motionCount === 0) {
+        if (totalMotions === 0) {
             document.getElementById("wire-details").innerHTML = "Select DS939 or ISC motion detectors to calculate wire run voltage drop.";
             return;
         }
 
-        const nodeCurrentA = 0.02504;
-        const totalLoopCurrentmA = motionCount * nodeCurrentA * 1000;
+        // Per-Detector Calculation (Standby + 5% Alarm Addition):
+        // DS939: 12mA standby + (5% * 39mA alarm) = 13.95mA per unit
+        // ISC-PPR1-W16: 10mA standby + (5% * 15mA alarm) = 10.75mA per unit
+        let ds939EffectiveDraw = 0.012 + (0.05 * 0.039); 
+        let iscEffectiveDraw = 0.010 + (0.05 * 0.015);   
+        let mod711Draw = 0.0042;
+
+        let totalMotionCurrent = (ds939Count * ds939EffectiveDraw) + (iscCount * iscEffectiveDraw);
+        let totalModCurrent = mods711sCount * mod711Draw;
+        let totalCurrentA = totalMotionCurrent + totalModCurrent;
+
+        let perNodeCurrentA = totalCurrentA / totalMotions;
+        let totalLoopCurrentmA = totalCurrentA * 1000;
         
-        // 18 AWG resistance per foot (one-way). Round trip uses 2x multiplier.
+        // 18 AWG resistance per foot (one-way). Round trip uses 2x multiplier (0.01302 ohm/ft loop).
         const ohmPerFtOneWay = 0.00651;
         const ohmPerFtLoop = ohmPerFtOneWay * 2; 
 
-        const spacingFt = maxDist / motionCount;
+        const spacingFt = maxDist / totalMotions;
         let totalDrop = 0;
         let cutoffDetector = 0;
         let cutoffFeet = 0;
 
-        for (let i = 1; i <= motionCount; i++) {
-            let segmentCurrent = (motionCount - i + 1) * nodeCurrentA;
-            // Full round-trip drop along this segment:
+        for (let i = 1; i <= totalMotions; i++) {
+            let segmentCurrent = (totalMotions - i + 1) * perNodeCurrentA;
             let segmentDrop = segmentCurrent * (spacingFt * ohmPerFtLoop);
             totalDrop += segmentDrop;
             let voltsAtNode = startVolts - totalDrop;
@@ -303,9 +315,9 @@
         let wireReport = `
             <strong>Starting Bus Voltage:</strong> 13.6 VDC<br>
             <strong>One-Way Distance (Round Trip Loop Computed):</strong> ${maxDist} Feet (${maxDist * 2}' Loop)<br>
-            <strong>Motion Count (Evenly Spaced):</strong> ${motionCount} detectors (~${spacingFt.toFixed(1)} ft apart)<br>
-            <strong>Loop Current Draw (5% Alarm Blend):</strong> ${totalLoopCurrentmA.toFixed(1)} mA<br>
-            <strong>End-of-Run Voltage (@ ${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#ffca28'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Total Round-Trip Drop: ${totalDrop.toFixed(2)} V)<br>
+            <strong>Active Motion Nodes:</strong> ${totalMotions} detectors (~${spacingFt.toFixed(1)} ft spacing)<br>
+            <strong>Calculated Current (Standby + 5% Alarm Blend):</strong> ${totalLoopCurrentmA.toFixed(1)} mA<br>
+            <strong>End-of-Run Voltage (@ ${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#ffca28'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Total Drop: ${totalDrop.toFixed(2)} V)<br>
         `;
 
         if (cutoffDetector > 0) {
@@ -323,14 +335,14 @@
 
         if (requiresAuxPower) {
             let reason = [];
-            if (endVolts <= 12.0 || totalDrop >= 1.6) reason.push(`Voltage drop exceeds 1.6V (End voltage: ${endVolts.toFixed(2)}V DC)`);
-            if (totalLoopCurrentmA >= 999) reason.push(`Loop current draw reaches/exceeds 999 mA (${totalLoopCurrentmA.toFixed(1)} mA)`);
+            if (endVolts <= 12.0 || totalDrop >= 1.6) reason.push(`Voltage drop exceeds 1.6V limit (End voltage: ${endVolts.toFixed(2)}V DC)`);
+            if (totalLoopCurrentmA >= 999) reason.push(`Loop current reaches/exceeds 999 mA (${totalLoopCurrentmA.toFixed(1)} mA)`);
 
             alertBox.style.display = "block";
             alertBox.innerHTML = `⚠️ AUXILIARY POWER SUPPLY REQUIRED<br><span style="font-size:0.8em; font-weight:normal;">${reason.join(' | ')}</span>`;
 
             setTimeout(() => {
-                alert(`⚠️ AUXILIARY POWER SUPPLY REQUIRED!\n\nReason:\n- ${reason.join('\n- ')}\n\nAdd an auxiliary power supply at or before Detector #${cutoffDetector || motionCount} (${cutoffFeet || maxDist} ft).`);
+                alert(`⚠️ AUXILIARY POWER SUPPLY REQUIRED!\n\nReason:\n- ${reason.join('\n- ')}\n\nAdd an auxiliary power supply at or before Detector #${cutoffDetector || totalMotions} (${cutoffFeet || maxDist} ft).`);
             }, 100);
         }
     }
