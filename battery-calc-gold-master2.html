@@ -64,7 +64,7 @@
     <div id="list-container">
         <div class="row">
             <div><div class="name">XR550DEA-G Panel</div><div class="specs">174mA Standby / 217mA Alarm</div></div>
-            <select id="panel" onchange="updateLiveZones()"><option value="0">0</option><option value="1" selected>1</option></select>
+            <select id="panel" onchange="updateLiveZones()"><option value="0" selected>0</option><option value="1">1</option></select>
         </div>
         <div class="row">
             <div><div class="name">7060AN-W Keypad</div><div class="specs">72mA Standby / 87mA Alarm</div></div>
@@ -134,12 +134,13 @@
     <div class="row">
         <div><div class="name">Total Wire Run Distance</div><div class="specs">Select one-way distance (100' steps, Max 1000')</div></div>
         <select id="wire_dist">
+            <option value="0" selected>0'</option>
             <option value="100">100'</option>
             <option value="200">200'</option>
             <option value="300">300'</option>
             <option value="400">400'</option>
             <option value="500">500'</option>
-            <option value="600" selected>600'</option>
+            <option value="600">600'</option>
             <option value="700">700'</option>
             <option value="800">800'</option>
             <option value="900">900'</option>
@@ -199,7 +200,7 @@
 
     function resetAll() {
         document.getElementById("panel").value = "0";
-        document.getElementById("wire_dist").value = "100";
+        document.getElementById("wire_dist").value = "0";
         document.getElementById("bat_rating").selectedIndex = 0;
         
         const ids = ["keypad", "mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
@@ -281,7 +282,7 @@
     }
 
     function calcWireRun(ds939Count, iscCount, mods711sCount) {
-        let maxDist = parseInt(document.getElementById("wire_dist").value) || 600;
+        let maxDist = parseInt(document.getElementById("wire_dist").value) || 0;
         let totalMotions = ds939Count + iscCount;
 
         let startVolts = 13.6;
