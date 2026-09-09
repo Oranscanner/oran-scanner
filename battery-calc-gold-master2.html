@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>oran-Vd/Ah-calc</title>
+    <title>Vd/Ah-calcORANator</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; color: #fff; padding: 10px; margin: 0; }
         .card { background: #1a1a1b; padding: 15px; border-radius: 12px; max-width: 520px; margin: auto; border: 1px solid #333; }
@@ -27,9 +27,9 @@
         .runtime-box { margin-top: 10px; padding: 12px; background: #0a192f; border-radius: 10px; border: 1px solid #1e40af; text-align: center; }
         .runtime-title { font-size: 0.95em; color: #60a5fa; font-weight: bold; margin-bottom: 4px; }
         
-        .wire-box { margin-top: 15px; padding: 15px; background: #1c1500; border-radius: 10px; border: 1px solid #ffb300; }
-        .wire-title { font-size: 1.1em; color: #ffca28; font-weight: bold; text-align: center; margin-bottom: 8px; text-transform: uppercase; }
-        #wire-details { font-size: 0.85em; color: #ffe082; line-height: 1.5; text-align: left; }
+        .wire-box { margin-top: 15px; padding: 15px; background: #0d233a; border-radius: 10px; border: 1px solid #00e5ff; }
+        .wire-title { font-size: 1.1em; color: #00e5ff; font-weight: bold; text-align: center; margin-bottom: 8px; text-transform: uppercase; }
+        #wire-details { font-size: 0.85em; color: #e0f7fa; line-height: 1.5; text-align: left; }
         .alert-banner { display: none; margin-top: 10px; padding: 10px; background: #3e0000; border: 1px solid #ff3d00; border-radius: 8px; color: #ff8a80; font-weight: bold; font-size: 0.85em; text-align: center; }
 
         #details { font-size: 0.85em; color: #ccc; line-height: 1.5; text-align: left; }
@@ -47,7 +47,7 @@
 </div>
 
 <div class="card">
-    <h2 class="app-title">oran-Vd/Ah-calc</h2>
+    <h2 class="app-title">Vd/Ah-calcORANator</h2>
     <div class="sub">Oran Medina 2026 — Gold Master v2</div>
 
     <div class="section-title">Battery Configuration</div>
@@ -167,7 +167,7 @@
 
     <div class="wire-box">
         <div class="wire-title">18 AWG Loop Voltage Drop</div>
-        <div id="wire-details">Calculates voltage drop using specific detector and door contact (711S) currents.</div>
+        <div id="wire-details">Calculates voltage drop using specific detector, door contact  and 711S currents.</div>
         <div id="wire-alert" class="alert-banner"></div>
     </div>
 </div>
@@ -215,7 +215,7 @@
         document.getElementById('details').innerHTML = "Select parameters above and tap Calculate.";
         document.getElementById('panel-load-alert').style.display = "none";
         document.getElementById('runtime-details').innerHTML = "Calculates runtime duration before reaching panel cutoff.";
-        document.getElementById('wire-details').innerHTML = "Calculates voltage drop using specific detector and door contact (711S) currents.";
+        document.getElementById('wire-details').innerHTML = "Calculates voltage drop using specific detector, door contact  and 711S currents.";
         document.getElementById('wire-alert').style.display = "none";
     }
 
@@ -390,7 +390,7 @@
 
         if (cutoffNode > 0) {
             wireReport += `
-                <hr style="border: 0; border-top: 1px solid #ffb300; margin: 8px 0;">
+                <hr style="border: 0; border-top: 1px solid #00e5ff; margin: 8px 0;">
                 <span style="color:#ff5252; font-weight:bold;">12.0V Cutoff Threshold Reached At:</span><br>
                 • Node #${cutoffNode} @ <strong>${cutoffFeet} Feet</strong><br>
                 • <strong style="color:#ff8a80;">AN AUXILIARY POWER SUPPLY IS REQUIRED AT/BEFORE THIS POINT.</strong>
@@ -412,7 +412,7 @@
     }
 
     function copyReport() {
-        let r = "ORAN-VD/AH-CALC REPORT\n--------------------\n";
+        let r = "VD/AH-CALCORANATOR REPORT\n--------------------\n";
         let selectedAh = document.getElementById("bat_rating").value;
         r += `Selected Battery Rating: ${selectedAh} Ah\n--------------------\n`;
         const ids = ["panel", "keypad", "mag_single", "mag_double", "ds939", "isc", "711s", "714", "714_8", "714_16", "712", "output", "horn", "splitter", "wifi"];
