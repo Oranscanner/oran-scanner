@@ -17,11 +17,12 @@
         .specs { font-size: 0.7em; color: #666; }
         select { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 85px; font-size: 0.95em; text-align: center; }
         
-        .wire-input-box { background: #0d233a; border: 1px solid #00e5ff; padding: 10px; border-radius: 8px; margin: 10px 0; }
-        .wire-input-box .section-title { color: #00e5ff; border-bottom-color: #0d3b58; margin-top: 0; }
-        .wire-input-box select { background: #00364a; color: #00e5ff; border: 1px solid #00e5ff; font-weight: bold; width: 95px; }
-        .wire-input-box .name { color: #e0f7fa; }
-        .wire-input-box .specs { color: #80deea; }
+        /* Highlighted Wire Distance Input Container - Brown/Gold Theme */
+        .wire-input-box { background: #1c1500; border: 1px solid #ffb300; padding: 10px; border-radius: 8px; margin: 10px 0; }
+        .wire-input-box .section-title { color: #ffca28; border-bottom-color: #3d2f00; margin-top: 0; }
+        .wire-input-box select { background: #3d2f00; color: #ffca28; border: 1px solid #ffb300; font-weight: bold; width: 95px; }
+        .wire-input-box .name { color: #ffe082; }
+        .wire-input-box .specs { color: #ffca28; }
 
         .zone-counter-bar { background: #112211; border: 1px solid #2e7d32; padding: 10px; border-radius: 8px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
         .zone-counter-title { font-weight: bold; font-size: 0.9em; color: #81c784; text-transform: uppercase; }
@@ -35,9 +36,10 @@
         .runtime-box { margin-top: 10px; padding: 12px; background: #0a192f; border-radius: 10px; border: 1px solid #1e40af; text-align: center; }
         .runtime-title { font-size: 0.95em; color: #60a5fa; font-weight: bold; margin-bottom: 4px; }
         
-        .wire-box { margin-top: 15px; padding: 15px; background: #1c1500; border-radius: 10px; border: 1px solid #ffb300; }
-        .wire-title { font-size: 1.1em; color: #ffca28; font-weight: bold; text-align: center; margin-bottom: 8px; text-transform: uppercase; }
-        #wire-details { font-size: 0.85em; color: #ffe082; line-height: 1.5; text-align: left; }
+        /* Voltage Drop Results Box - Cyan Theme */
+        .wire-box { margin-top: 15px; padding: 15px; background: #0d233a; border-radius: 10px; border: 1px solid #00e5ff; }
+        .wire-title { font-size: 1.1em; color: #00e5ff; font-weight: bold; text-align: center; margin-bottom: 8px; text-transform: uppercase; }
+        #wire-details { font-size: 0.85em; color: #e0f7fa; line-height: 1.5; text-align: left; }
         .alert-banner { display: none; margin-top: 10px; padding: 10px; background: #3e0000; border: 1px solid #ff3d00; border-radius: 8px; color: #ff8a80; font-weight: bold; font-size: 0.85em; text-align: center; }
 
         #details { font-size: 0.85em; color: #ccc; line-height: 1.5; text-align: left; }
@@ -135,10 +137,16 @@
             <select id="714_16_used_zones"></select>
         </div>
 
+        <!-- 712-8 Card & Sub-dropdown -->
         <div class="row">
             <div><div class="name">712-8 8-Zone Card</div><div class="specs">17mA Standby</div></div>
-            <select id="712" onchange="updateLiveZones()"></select>
+            <select id="712" onchange="handleModuleZoneToggle('712', 'sub-row-712', '712_used_zones', 8)"></select>
         </div>
+        <div class="sub-row" id="sub-row-712">
+            <div><div class="sub-name">↳ 712-8 Active Zones Used</div><div class="specs">+1.6mA per active zone</div></div>
+            <select id="712_used_zones"></select>
+        </div>
+
         <div class="row">
             <div><div class="name">716 Output Mod</div><div class="specs">7mA Standby</div></div>
             <select id="output" onchange="updateLiveZones()"></select>
@@ -268,7 +276,7 @@
         });
 
         // Hide sub-rows and reset zone sub-dropdowns
-        ["714", "714_8", "714_16"].forEach(modId => {
+        ["714", "714_8", "714_16", "712"].forEach(modId => {
             document.getElementById(`sub-row-${modId}`).style.display = "none";
             fill(`${modId}_used_zones`, 0);
         });
@@ -288,7 +296,6 @@
         let ds939 = parseInt(document.getElementById("ds939").value) || 0;
         let isc = parseInt(document.getElementById("isc").value) || 0;
 
-        // Zone count reflects actual physical contact/motion zones (2 zones each)
         let totalZones = (magSingle * 2) + (magDouble * 2) + (ds939 * 2) + (isc * 2);
         document.getElementById("live-zone-display").innerText = totalZones;
         return totalZones;
@@ -308,11 +315,12 @@
 
         let liveZones = updateLiveZones();
 
-        // Calculate active zone current draw (1.6mA per active zone on modules)
+        // Calculate active zone current draw (1.6mA per active zone across modules)
         let z714 = parseInt(document.getElementById("714_used_zones")?.value) || 0;
         let z714_8 = parseInt(document.getElementById("714_8_used_zones")?.value) || 0;
         let z714_16 = parseInt(document.getElementById("714_16_used_zones")?.value) || 0;
-        let moduleActiveZones = z714 + z714_8 + z714_16;
+        let z712 = parseInt(document.getElementById("712_used_zones")?.value) || 0;
+        let moduleActiveZones = z714 + z714_8 + z714_16 + z712;
 
         loadmA += (moduleActiveZones * 1.6);
 
@@ -451,12 +459,12 @@
             <strong>One-Way Distance (Round Trip Loop Computed):</strong> ${maxDist} Feet (${maxDist * 2}' Loop)<br>
             <strong>Active Wire Run Nodes:</strong> ${totalNodes} total (${totalDoors} Door Contacts, ${totalMotions} Motions) ~${spacingFt.toFixed(1)} ft spacing<br>
             <strong>Calculated Current (Standby + 5% Alarm Blend):</strong> ${totalLoopCurrentmA.toFixed(1)} mA<br>
-            <strong>End-of-Run Voltage (@ ${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#ffca28'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Total Drop: ${totalDrop.toFixed(2)} V)<br>
+            <strong>End-of-Run Voltage (@ ${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#00e5ff'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Total Drop: ${totalDrop.toFixed(2)} V)<br>
         `;
 
         if (cutoffNode > 0) {
             wireReport += `
-                <hr style="border: 0; border-top: 1px solid #ffb300; margin: 8px 0;">
+                <hr style="border: 0; border-top: 1px solid #00e5ff; margin: 8px 0;">
                 <span style="color:#ff5252; font-weight:bold;">12.0V Cutoff Threshold Reached At:</span><br>
                 • Node #${cutoffNode} @ <strong>${cutoffFeet} Feet</strong><br>
                 • <strong style="color:#ff8a80;">AN AUXILIARY POWER SUPPLY IS REQUIRED AT/BEFORE THIS POINT.</strong>
@@ -490,7 +498,7 @@
             }
         });
         
-        ["714", "714_8", "714_16"].forEach(modId => {
+        ["714", "714_8", "714_16", "712"].forEach(modId => {
             let zVal = parseInt(document.getElementById(`${modId}_used_zones`)?.value) || 0;
             if (zVal > 0) {
                 r += `  ↳ Active Zones Used (${modId}): ${zVal}\n`;
