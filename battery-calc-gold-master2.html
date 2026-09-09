@@ -157,6 +157,7 @@
     <div class="res-box">
         <div class="res-title" id="res-val">System Ready</div>
         <div id="details">Select parameters above and tap Calculate.</div>
+        <div id="panel-load-alert" class="alert-banner"></div>
     </div>
 
     <div class="runtime-box">
@@ -212,6 +213,7 @@
         updateLiveZones();
         document.getElementById('res-val').innerText = "System Ready";
         document.getElementById('details').innerHTML = "Select parameters above and tap Calculate.";
+        document.getElementById('panel-load-alert').style.display = "none";
         document.getElementById('runtime-details').innerHTML = "Calculates runtime duration before reaching panel cutoff.";
         document.getElementById('wire-details').innerHTML = "Calculates voltage drop using specific detector standby currents + 5% alarm addition.";
         document.getElementById('wire-alert').style.display = "none";
@@ -259,6 +261,14 @@
 
         document.getElementById('res-val').innerText = `${bats24} x ${selectedAh}Ah BATTERIES REQUIRED`;
         document.getElementById('details').innerHTML = out;
+
+        let panelAlertBox = document.getElementById("panel-load-alert");
+        if (loadmA > 1000) {
+            panelAlertBox.style.display = "block";
+            panelAlertBox.innerHTML = `⚠️ WARNING: Total standby current exceeds 1000 mA (${loadmA.toFixed(1)} mA). An auxiliary power supply is recommended.`;
+        } else {
+            panelAlertBox.style.display = "none";
+        }
 
         if (loadmA > 0) {
             let totalAvailableAh = bats24 * selectedAh;
@@ -372,6 +382,8 @@
             }
         });
         r += `--------------------\n${document.getElementById('details').innerText.replace(/<[^>]*>/g, '')}\n`;
+        let panelAlert = document.getElementById('panel-load-alert').innerText;
+        if (panelAlert) r += `--------------------\n${panelAlert}\n`;
         r += `--------------------\n${document.getElementById('runtime-details').innerText.replace(/<[^>]*>/g, '')}\n`;
         r += `--------------------\nWIRE RUN VOLTAGE DROP:\n${document.getElementById('wire-details').innerText.replace(/<[^>]*>/g, '')}`;
         
