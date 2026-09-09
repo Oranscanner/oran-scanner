@@ -19,7 +19,6 @@
         
         /* Highlighted Wire Distance Input Container - Brown/Gold Theme */
         .wire-input-box { background: #1c1500; border: 1px solid #ffb300; padding: 10px; border-radius: 8px; margin: 10px 0; }
-        .wire-input-box .section-title { color: #ffca28; border-bottom-color: #3d2f00; margin-top: 0; }
         .wire-input-box select { background: #3d2f00; color: #ffca28; border: 1px solid #ffb300; font-weight: bold; width: 95px; }
         .wire-input-box .name { color: #ffe082; }
         .wire-input-box .specs { color: #ffca28; }
@@ -58,7 +57,7 @@
 
 <div class="card">
     <h2 class="app-title">Vd/Ah-calcORANator</h2>
-    <div class="sub">Oran Medina 2026 — Gold Master v2</div>
+    <div class="sub">Oran Medina 2026 — Gold Master v12.1</div>
 
     <div class="section-title">Battery Configuration</div>
     <div class="row">
@@ -166,7 +165,6 @@
     </div>
 
     <div class="wire-input-box">
-        <div class="section-title">Motion Loop Wire Settings (18 AWG)</div>
         <div class="row" style="border-bottom: none;">
             <div><div class="name">Total Wire Run Distance</div><div class="specs">Select one-way distance (50' steps, Max 1000')</div></div>
             <select id="wire_dist">
@@ -275,7 +273,6 @@
             if (elem) elem.value = "0";
         });
 
-        // Hide sub-rows and reset zone sub-dropdowns
         ["714", "714_8", "714_16", "712"].forEach(modId => {
             document.getElementById(`sub-row-${modId}`).style.display = "none";
             fill(`${modId}_used_zones`, 0);
@@ -315,7 +312,6 @@
 
         let liveZones = updateLiveZones();
 
-        // Calculate active zone current draw (1.6mA per active zone across modules)
         let z714 = parseInt(document.getElementById("714_used_zones")?.value) || 0;
         let z714_8 = parseInt(document.getElementById("714_8_used_zones")?.value) || 0;
         let z714_16 = parseInt(document.getElementById("714_16_used_zones")?.value) || 0;
@@ -388,7 +384,7 @@
 
         let ds939DrawA = 0.012 + (0.05 * 0.039); 
         let iscDrawA = 0.010 + (0.05 * 0.015);   
-        let doorDrawA = 0.0084; // 2x 711S @ 4.2mA
+        let doorDrawA = 0.0084;
 
         let nodeDrawsA = [];
         let doorsLeft = totalDoors;
