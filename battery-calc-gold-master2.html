@@ -166,8 +166,8 @@
     </div>
 
     <div class="wire-box">
-        <div class="wire-title">18 AWG Motion Run Voltage Drop</div>
-        <div id="wire-details">Calculates voltage drop using specific detector standby currents + 5% alarm addition.</div>
+        <div class="wire-title">18 AWG Loop Voltage Drop</div>
+        <div id="wire-details">Calculates voltage drop using specific detector and door contact (711S) currents.</div>
         <div id="wire-alert" class="alert-banner"></div>
     </div>
 </div>
@@ -215,7 +215,7 @@
         document.getElementById('details').innerHTML = "Select parameters above and tap Calculate.";
         document.getElementById('panel-load-alert').style.display = "none";
         document.getElementById('runtime-details').innerHTML = "Calculates runtime duration before reaching panel cutoff.";
-        document.getElementById('wire-details').innerHTML = "Calculates voltage drop using specific detector standby currents + 5% alarm addition.";
+        document.getElementById('wire-details').innerHTML = "Calculates voltage drop using specific detector and door contact (711S) currents.";
         document.getElementById('wire-alert').style.display = "none";
     }
 
@@ -287,51 +287,93 @@
 
         let ds939 = parseInt(document.getElementById("ds939").value) || 0;
         let isc = parseInt(document.getElementById("isc").value) || 0;
-        let mods711s = parseInt(document.getElementById("711s").value) || 0;
-        calcWireRun(ds939, isc, mods711s);
+        let magSingle = parseInt(document.getElementById("mag_single").value) || 0;
+        let magDouble = parseInt(document.getElementById("mag_double").value) || 0;
+        calcWireRun(ds939, isc, magSingle, magDouble);
     }
 
-    function calcWireRun(ds939Count, iscCount, mods711sCount) {
+    function calcWireRun(ds939Count, iscCount, magSingleCount, magDoubleCount) {
         let maxDist = parseInt(document.getElementById("wire_dist").value) || 0;
+        let totalDoors = magSingleCount + magDoubleCount;
         let totalMotions = ds939Count + iscCount;
+        let totalNodes = totalDoors + totalMotions;
 
         let startVolts = 13.6;
         let alertBox = document.getElementById("wire-alert");
         alertBox.style.display = "none";
 
-        if (totalMotions === 0) {
-            document.getElementById("wire-details").innerHTML = "Select DS939 or ISC motion detectors to calculate wire run voltage drop.";
+        if (totalNodes === 0) {
+            document.getElementById("wire-details").innerHTML = "Select motion detectors or door contacts to calculate wire run voltage drop.";
             return;
         }
 
-        let ds939EffectiveDraw = 0.012 + (0.05 * 0.039); 
-        let iscEffectiveDraw = 0.010 + (0.05 * 0.015);   
-        let mod711Draw = 0.0042;
+        let ds939DrawA = 0.012 + (0.05 * 0.039); 
+        let iscDrawA = 0.010 + (0.05 * 0.015);   
+        let doorDrawA = 0.0084; // 2x 711S @ 4.2mA
 
-        let totalMotionCurrent = (ds939Count * ds939EffectiveDraw) + (iscCount * iscEffectiveDraw);
-        let totalModCurrent = mods711sCount * mod711Draw;
-        let totalCurrentA = totalMotionCurrent + totalModCurrent;
+        // Build node array - Doors placed first, then interleaved with motions
+        let nodeDrawsA = [];
+        let doorsLeft = totalDoors;
+        let motionsLeft = totalMotions;
 
-        let perNodeCurrentA = totalCurrentA / totalMotions;
+        // Populate motion instances list
+        let motionList = [];
+        for (let i = 0; i < ds939Count; i++) motionList.push(ds939DrawA);
+        for (let i = 0; i < iscCount; i++) motionList.push(iscDrawA);
+
+        // Position 1: Door if available
+        if (doorsLeft > 0) {
+            nodeDrawsA.push(doorDrawA);
+            doorsLeft--;
+        } else if (motionList.length > 0) {
+            nodeDrawsA.push(motionList.shift());
+            motionsLeft--;
+        }
+
+        // Interleave remaining doors and motions
+        for (let i = 1; i < totalNodes; i++) {
+            if (doorsLeft > 0 && motionsLeft > 0) {
+                if (i % 2 === 1 && motionList.length > 0) {
+                    nodeDrawsA.push(motionList.shift());
+                    motionsLeft--;
+                } else {
+                    nodeDrawsA.push(doorDrawA);
+                    doorsLeft--;
+                }
+            } else if (doorsLeft > 0) {
+                nodeDrawsA.push(doorDrawA);
+                doorsLeft--;
+            } else if (motionList.length > 0) {
+                nodeDrawsA.push(motionList.shift());
+                motionsLeft--;
+            }
+        }
+
+        let totalCurrentA = nodeDrawsA.reduce((sum, val) => sum + val, 0);
         let totalLoopCurrentmA = totalCurrentA * 1000;
-        
+
         const ohmPerFtOneWay = 0.00651;
         const ohmPerFtLoop = ohmPerFtOneWay * 2; 
 
-        const spacingFt = maxDist / totalMotions;
+        const spacingFt = maxDist / totalNodes;
         let totalDrop = 0;
-        let cutoffDetector = 0;
+        let cutoffNode = 0;
         let cutoffFeet = 0;
 
-        for (let i = 1; i <= totalMotions; i++) {
-            let segmentCurrent = (totalMotions - i + 1) * perNodeCurrentA;
-            let segmentDrop = segmentCurrent * (spacingFt * ohmPerFtLoop);
+        for (let i = 0; i < totalNodes; i++) {
+            // Current flowing through segment i is sum of current for node i and all remaining downstream nodes
+            let segmentCurrentA = 0;
+            for (let j = i; j < totalNodes; j++) {
+                segmentCurrentA += nodeDrawsA[j];
+            }
+
+            let segmentDrop = segmentCurrentA * (spacingFt * ohmPerFtLoop);
             totalDrop += segmentDrop;
             let voltsAtNode = startVolts - totalDrop;
 
-            if (voltsAtNode <= 12.0 && cutoffDetector === 0) {
-                cutoffDetector = i;
-                cutoffFeet = Math.round(i * spacingFt);
+            if (voltsAtNode <= 12.0 && cutoffNode === 0) {
+                cutoffNode = i + 1;
+                cutoffFeet = Math.round((i + 1) * spacingFt);
             }
         }
 
@@ -341,16 +383,16 @@
         let wireReport = `
             <strong>Starting Bus Voltage:</strong> 13.6 VDC<br>
             <strong>One-Way Distance (Round Trip Loop Computed):</strong> ${maxDist} Feet (${maxDist * 2}' Loop)<br>
-            <strong>Active Motion Nodes:</strong> ${totalMotions} detectors (~${spacingFt.toFixed(1)} ft spacing)<br>
+            <strong>Active Wire Run Nodes:</strong> ${totalNodes} total (${totalDoors} Door Contact Pairs [711S], ${totalMotions} Motions) ~${spacingFt.toFixed(1)} ft spacing<br>
             <strong>Calculated Current (Standby + 5% Alarm Blend):</strong> ${totalLoopCurrentmA.toFixed(1)} mA<br>
             <strong>End-of-Run Voltage (@ ${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#ffca28'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Total Drop: ${totalDrop.toFixed(2)} V)<br>
         `;
 
-        if (cutoffDetector > 0) {
+        if (cutoffNode > 0) {
             wireReport += `
                 <hr style="border: 0; border-top: 1px solid #ffb300; margin: 8px 0;">
                 <span style="color:#ff5252; font-weight:bold;">12.0V Cutoff Threshold Reached At:</span><br>
-                • Detector #${cutoffDetector} @ <strong>${cutoffFeet} Feet</strong><br>
+                • Node #${cutoffNode} @ <strong>${cutoffFeet} Feet</strong><br>
                 • <strong style="color:#ff8a80;">AN AUXILIARY POWER SUPPLY IS REQUIRED AT/BEFORE THIS POINT.</strong>
             `;
         } else {
