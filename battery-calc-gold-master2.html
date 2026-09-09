@@ -11,14 +11,15 @@
         .sub { text-align: center; font-size: 0.75em; color: #888; margin-bottom: 15px; }
         .section-title { color: #ff3d00; font-size: 0.85em; font-weight: bold; text-transform: uppercase; margin: 15px 0 8px 0; border-bottom: 1px solid #333; padding-bottom: 3px; }
         .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #2a2a2b; }
+        .sub-row { display: none; justify-content: space-between; align-items: center; padding: 6px 0 6px 20px; background: #222225; border-bottom: 1px solid #2a2a2b; }
         .name { font-weight: 600; font-size: 0.9em; color: #efefef; }
+        .sub-name { font-weight: 600; font-size: 0.85em; color: #4caf50; }
         .specs { font-size: 0.7em; color: #666; }
         select { background: #333; color: #fff; border: 1px solid #444; padding: 6px; border-radius: 5px; width: 85px; font-size: 0.95em; text-align: center; }
         
-        /* Highlighted Wire Distance Input Container */
         .wire-input-box { background: #0d233a; border: 1px solid #00e5ff; padding: 10px; border-radius: 8px; margin: 10px 0; }
         .wire-input-box .section-title { color: #00e5ff; border-bottom-color: #0d3b58; margin-top: 0; }
-        .wire-input-box select { background: #00364a; color: #00e5ff; border: 1px solid #00e5ff; font-weight: bold; }
+        .wire-input-box select { background: #00364a; color: #00e5ff; border: 1px solid #00e5ff; font-weight: bold; width: 95px; }
         .wire-input-box .name { color: #e0f7fa; }
         .wire-input-box .specs { color: #80deea; }
 
@@ -103,18 +104,37 @@
             <div><div class="name">711S 1-Zone Mod</div><div class="specs">4.2mA Standby</div></div>
             <select id="711s" onchange="updateLiveZones()"></select>
         </div>
+        
+        <!-- 714 Module & Sub-dropdown -->
         <div class="row">
             <div><div class="name">714 4-Zone Mod</div><div class="specs">7mA Standby</div></div>
-            <select id="714" onchange="updateLiveZones()"></select>
+            <select id="714" onchange="handleModuleZoneToggle('714', 'sub-row-714', '714_used_zones', 4)"></select>
         </div>
+        <div class="sub-row" id="sub-row-714">
+            <div><div class="sub-name">↳ 714 Active Zones Used</div><div class="specs">+1.6mA per active zone</div></div>
+            <select id="714_used_zones"></select>
+        </div>
+
+        <!-- 714-8 Module & Sub-dropdown -->
         <div class="row">
             <div><div class="name">714-8 8-Zone Mod</div><div class="specs">20mA Standby</div></div>
-            <select id="714_8" onchange="updateLiveZones()"></select>
+            <select id="714_8" onchange="handleModuleZoneToggle('714_8', 'sub-row-714_8', '714_8_used_zones', 8)"></select>
         </div>
+        <div class="sub-row" id="sub-row-714_8">
+            <div><div class="sub-name">↳ 714-8 Active Zones Used</div><div class="specs">+1.6mA per active zone</div></div>
+            <select id="714_8_used_zones"></select>
+        </div>
+
+        <!-- 714-16 Module & Sub-dropdown -->
         <div class="row">
             <div><div class="name">714-16 16-Zone Mod</div><div class="specs">20mA Standby</div></div>
-            <select id="714_16" onchange="updateLiveZones()"></select>
+            <select id="714_16" onchange="handleModuleZoneToggle('714_16', 'sub-row-714_16', '714_16_used_zones', 16)"></select>
         </div>
+        <div class="sub-row" id="sub-row-714_16">
+            <div><div class="sub-name">↳ 714-16 Active Zones Used</div><div class="specs">+1.6mA per active zone</div></div>
+            <select id="714_16_used_zones"></select>
+        </div>
+
         <div class="row">
             <div><div class="name">712-8 8-Zone Card</div><div class="specs">17mA Standby</div></div>
             <select id="712" onchange="updateLiveZones()"></select>
@@ -140,18 +160,28 @@
     <div class="wire-input-box">
         <div class="section-title">Motion Loop Wire Settings (18 AWG)</div>
         <div class="row" style="border-bottom: none;">
-            <div><div class="name">Total Wire Run Distance</div><div class="specs">Select one-way distance (100' steps, Max 1000')</div></div>
+            <div><div class="name">Total Wire Run Distance</div><div class="specs">Select one-way distance (50' steps, Max 1000')</div></div>
             <select id="wire_dist">
                 <option value="0" selected>0'</option>
+                <option value="50">50'</option>
                 <option value="100">100'</option>
+                <option value="150">150'</option>
                 <option value="200">200'</option>
+                <option value="250">250'</option>
                 <option value="300">300'</option>
+                <option value="350">350'</option>
                 <option value="400">400'</option>
+                <option value="450">450'</option>
                 <option value="500">500'</option>
+                <option value="550">550'</option>
                 <option value="600">600'</option>
+                <option value="650">650'</option>
                 <option value="700">700'</option>
+                <option value="750">750'</option>
                 <option value="800">800'</option>
+                <option value="850">850'</option>
                 <option value="900">900'</option>
+                <option value="950">950'</option>
                 <option value="1000">1000'</option>
             </select>
         </div>
@@ -176,7 +206,7 @@
 
     <div class="wire-box">
         <div class="wire-title">18 AWG Loop Voltage Drop</div>
-        <div id="wire-details">Calculates voltage drop using specific detector, door contact  and 711S currents.</div>
+        <div id="wire-details">Calculates voltage drop using specific detector, door contact and 711S currents.</div>
         <div id="wire-alert" class="alert-banner"></div>
     </div>
 </div>
@@ -208,6 +238,24 @@
         fill("wifi", 10);
     }
 
+    function handleModuleZoneToggle(modId, subRowId, zoneSelectId, zonesPerMod) {
+        let modQty = parseInt(document.getElementById(modId).value) || 0;
+        let subRow = document.getElementById(subRowId);
+        let zoneSelect = document.getElementById(zoneSelectId);
+
+        if (modQty > 0) {
+            subRow.style.display = "flex";
+            let maxCapacity = modQty * zonesPerMod;
+            let currentVal = parseInt(zoneSelect.value) || 0;
+            fill(zoneSelectId, maxCapacity);
+            zoneSelect.value = Math.min(currentVal, maxCapacity);
+        } else {
+            subRow.style.display = "none";
+            fill(zoneSelectId, 0);
+            zoneSelect.value = "0";
+        }
+    }
+
     function resetAll() {
         document.getElementById("panel").value = "0";
         document.getElementById("wire_dist").value = "0";
@@ -219,12 +267,18 @@
             if (elem) elem.value = "0";
         });
 
+        // Hide sub-rows and reset zone sub-dropdowns
+        ["714", "714_8", "714_16"].forEach(modId => {
+            document.getElementById(`sub-row-${modId}`).style.display = "none";
+            fill(`${modId}_used_zones`, 0);
+        });
+
         updateLiveZones();
         document.getElementById('res-val').innerText = "System Ready";
         document.getElementById('details').innerHTML = "Select parameters above and tap Calculate.";
         document.getElementById('panel-load-alert').style.display = "none";
         document.getElementById('runtime-details').innerHTML = "Calculates runtime duration before reaching panel cutoff.";
-        document.getElementById('wire-details').innerHTML = "Calculates voltage drop using specific detector, door contact  and 711S currents.";
+        document.getElementById('wire-details').innerHTML = "Calculates voltage drop using specific detector, door contact and 711S currents.";
         document.getElementById('wire-alert').style.display = "none";
     }
 
@@ -234,6 +288,7 @@
         let ds939 = parseInt(document.getElementById("ds939").value) || 0;
         let isc = parseInt(document.getElementById("isc").value) || 0;
 
+        // Zone count reflects actual physical contact/motion zones (2 zones each)
         let totalZones = (magSingle * 2) + (magDouble * 2) + (ds939 * 2) + (isc * 2);
         document.getElementById("live-zone-display").innerText = totalZones;
         return totalZones;
@@ -251,8 +306,15 @@
             loadmA += q * draws[i];
         });
 
-        let totalZones = updateLiveZones();
-        loadmA += (totalZones * 1.6);
+        let liveZones = updateLiveZones();
+
+        // Calculate active zone current draw (1.6mA per active zone on modules)
+        let z714 = parseInt(document.getElementById("714_used_zones")?.value) || 0;
+        let z714_8 = parseInt(document.getElementById("714_8_used_zones")?.value) || 0;
+        let z714_16 = parseInt(document.getElementById("714_16_used_zones")?.value) || 0;
+        let moduleActiveZones = z714 + z714_8 + z714_16;
+
+        loadmA += (moduleActiveZones * 1.6);
 
         let ah24 = ((loadmA / 1000) * 24 * 1.2);
 
@@ -261,7 +323,7 @@
 
         let out = `
             <strong>Total Standby Current:</strong> ${loadmA.toFixed(1)} mA<br>
-            <strong>Total Active Zones:</strong> ${totalZones}<br>
+            <strong>Total System Zones:</strong> ${liveZones} (${moduleActiveZones} Active Module Terminals)<br>
             <hr style="border: 0; border-top: 1px solid #333; margin: 8px 0;">
             <strong>24-Hour Battery Requirement (${selectedAh} Ah Rating):</strong><br>
             • Required Capacity (w/ 20% Safety Factor): <strong>${ah24.toFixed(2)} Ah</strong><br>
@@ -320,17 +382,14 @@
         let iscDrawA = 0.010 + (0.05 * 0.015);   
         let doorDrawA = 0.0084; // 2x 711S @ 4.2mA
 
-        // Build node array - Doors placed first, then interleaved with motions
         let nodeDrawsA = [];
         let doorsLeft = totalDoors;
         let motionsLeft = totalMotions;
 
-        // Populate motion instances list
         let motionList = [];
         for (let i = 0; i < ds939Count; i++) motionList.push(ds939DrawA);
         for (let i = 0; i < iscCount; i++) motionList.push(iscDrawA);
 
-        // Position 1: Door if available
         if (doorsLeft > 0) {
             nodeDrawsA.push(doorDrawA);
             doorsLeft--;
@@ -339,7 +398,6 @@
             motionsLeft--;
         }
 
-        // Interleave remaining doors and motions
         for (let i = 1; i < totalNodes; i++) {
             if (doorsLeft > 0 && motionsLeft > 0) {
                 if (i % 2 === 1 && motionList.length > 0) {
@@ -370,7 +428,6 @@
         let cutoffFeet = 0;
 
         for (let i = 0; i < totalNodes; i++) {
-            // Current flowing through segment i is sum of current for node i and all remaining downstream nodes
             let segmentCurrentA = 0;
             for (let j = i; j < totalNodes; j++) {
                 segmentCurrentA += nodeDrawsA[j];
@@ -432,6 +489,14 @@
                 r += `${name}: ${q}\n`;
             }
         });
+        
+        ["714", "714_8", "714_16"].forEach(modId => {
+            let zVal = parseInt(document.getElementById(`${modId}_used_zones`)?.value) || 0;
+            if (zVal > 0) {
+                r += `  ↳ Active Zones Used (${modId}): ${zVal}\n`;
+            }
+        });
+
         r += `--------------------\n${document.getElementById('details').innerText.replace(/<[^>]*>/g, '')}\n`;
         let panelAlert = document.getElementById('panel-load-alert').innerText;
         if (panelAlert) r += `--------------------\n${panelAlert}\n`;
