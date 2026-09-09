@@ -383,7 +383,7 @@
         let wireReport = `
             <strong>Starting Bus Voltage:</strong> 13.6 VDC<br>
             <strong>One-Way Distance (Round Trip Loop Computed):</strong> ${maxDist} Feet (${maxDist * 2}' Loop)<br>
-            <strong>Active Wire Run Nodes:</strong> ${totalNodes} total (${totalDoors} Door Contact Pairs [711S], ${totalMotions} Motions) ~${spacingFt.toFixed(1)} ft spacing<br>
+            <strong>Active Wire Run Nodes:</strong> ${totalNodes} total (${totalDoors} Door Contacts, ${totalMotions} Motions) ~${spacingFt.toFixed(1)} ft spacing<br>
             <strong>Calculated Current (Standby + 5% Alarm Blend):</strong> ${totalLoopCurrentmA.toFixed(1)} mA<br>
             <strong>End-of-Run Voltage (@ ${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#ffca28'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Total Drop: ${totalDrop.toFixed(2)} V)<br>
         `;
