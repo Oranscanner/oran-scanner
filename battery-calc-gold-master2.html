@@ -57,7 +57,7 @@
 
 <div class="card">
     <h2 class="app-title">Vd/Ah-calcORANator</h2>
-    <div class="sub">Oran Medina 2026 — Gold Master v12.1</div>
+    <div class="sub">Oran Medina 2026 — Gold Master v12.2</div>
 
     <div class="section-title">Battery Configuration</div>
     <div class="row">
@@ -364,10 +364,11 @@
         let isc = parseInt(document.getElementById("isc").value) || 0;
         let magSingle = parseInt(document.getElementById("mag_single").value) || 0;
         let magDouble = parseInt(document.getElementById("mag_double").value) || 0;
-        calcWireRun(ds939, isc, magSingle, magDouble);
+        let mod711s = parseInt(document.getElementById("711s").value) || 0;
+        calcWireRun(ds939, isc, magSingle, magDouble, mod711s);
     }
 
-    function calcWireRun(ds939Count, iscCount, magSingleCount, magDoubleCount) {
+    function calcWireRun(ds939Count, iscCount, magSingleCount, magDoubleCount, mod711sCount) {
         let maxDist = parseInt(document.getElementById("wire_dist").value) || 0;
         let totalDoors = magSingleCount + magDoubleCount;
         let totalMotions = ds939Count + iscCount;
@@ -382,9 +383,10 @@
             return;
         }
 
-        let ds939DrawA = 0.012 + (0.05 * 0.039); 
-        let iscDrawA = 0.010 + (0.05 * 0.015);   
-        let doorDrawA = 0.0084;
+        // Incorporates 2x 711S (8.4 mA) for each field node (door contact or motion detector)
+        let ds939DrawA = 0.012 + (0.05 * 0.039) + 0.0084; 
+        let iscDrawA = 0.010 + (0.05 * 0.015) + 0.0084;   
+        let doorDrawA = 0.0084; // 2x 711S @ 4.2mA
 
         let nodeDrawsA = [];
         let doorsLeft = totalDoors;
@@ -454,7 +456,7 @@
             <strong>Starting Bus Voltage:</strong> 13.6 VDC<br>
             <strong>One-Way Distance (Round Trip Loop Computed):</strong> ${maxDist} Feet (${maxDist * 2}' Loop)<br>
             <strong>Active Wire Run Nodes:</strong> ${totalNodes} total (${totalDoors} Door Contacts, ${totalMotions} Motions) ~${spacingFt.toFixed(1)} ft spacing<br>
-            <strong>Calculated Current (Standby + 5% Alarm Blend):</strong> ${totalLoopCurrentmA.toFixed(1)} mA<br>
+            <strong>Calculated Current (Standby + 5% Alarm Blend + Field 711S):</strong> ${totalLoopCurrentmA.toFixed(1)} mA<br>
             <strong>End-of-Run Voltage (@ ${maxDist} ft):</strong> <span style="color:${endVolts <= 12.0 ? '#ff5252' : '#00e5ff'}; font-weight:bold;">${endVolts.toFixed(2)} VDC</span> (Total Drop: ${totalDrop.toFixed(2)} V)<br>
         `;
 
